@@ -17,6 +17,7 @@ public abstract class EnemyBase : MonoBehaviour
     public virtual void TakeDamage(float amount)
     {
         currentHealth -= amount;
+        Debug.Log($"{enemyName} отримав {amount} урону. Поточне HP: {currentHealth}");
         if (currentHealth <= 0)
             Die();
     }

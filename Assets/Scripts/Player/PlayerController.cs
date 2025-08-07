@@ -21,6 +21,11 @@ public class PlayerController : MonoBehaviour
     public float miningRadius = 2f;
     private bool isMining = false;
 
+    public float attackRadius = 1.5f;
+    public float attackDamage = 25f;
+    public LayerMask enemyLayer; // встанови шар для ворогів
+    private bool isAttacking = false;
+
     private void Awake()
     {
         if (Instance == null) Instance = this;
@@ -68,7 +73,8 @@ public class PlayerController : MonoBehaviour
             }
             else if (HasSword())
             {
-                // animator.SetTrigger("isAttacking");
+                if (!isAttacking && attackDamage > 0)
+                    StartCoroutine(Attack());
             }
             else if (HasAxe())
             {
@@ -181,7 +187,8 @@ public class PlayerController : MonoBehaviour
             heldObject = Instantiate(item.equippedPrefab, holdPoint.position, Quaternion.identity, holdPoint);
             heldObject.transform.localPosition = Vector3.zero;
             heldObject.transform.localRotation = Quaternion.Euler(0, 0, -90); // Можливо, потрібно налаштувати для різних інструментів
-
+            attackDamage = item.damage; // Встановлюємо урон гравця згідно з предметом
+            SetCurrentTool(item.name);
             // Відключаємо фізику для екіпірованого об'єкта
             Rigidbody2D rbHeld = heldObject.GetComponent<Rigidbody2D>();
             if (rbHeld != null)
@@ -195,6 +202,7 @@ public class PlayerController : MonoBehaviour
         else
         {
             SetCurrentTool("None");
+            attackDamage = 0f;
             Debug.Log("Спроба екіпірувати null-предмет або предмет без equippedPrefab. Скинуто поточний інструмент.");
         }
     }
@@ -206,6 +214,7 @@ public class PlayerController : MonoBehaviour
             Destroy(heldObject);
             heldObject = null;
             SetCurrentTool("None");
+            attackDamage = 0f;
             Debug.Log("Предмет успішно де-екіпіровано.");
         }
     }
@@ -247,5 +256,46 @@ public class PlayerController : MonoBehaviour
         if (currentTool == item.name) return true;
 
         return false;
+    }
+    
+    private IEnumerator Attack()
+    {
+        isAttacking = true;
+        animator.SetBool("isAttacking", true);
+
+        // Чекаємо, поки дійсно увійдемо в анімацію
+        float timer = 0f;
+        while (!animator.GetCurrentAnimatorStateInfo(0).IsName("Player_Attack_Anim") && timer < 1.0f)
+        {
+            timer += Time.deltaTime;
+            yield return null;
+        }
+
+        // Завдаємо шкоди ворогам поблизу
+        Collider2D[] enemiesHit = Physics2D.OverlapCircleAll(transform.position, attackRadius, enemyLayer);
+        foreach (Collider2D enemyCol in enemiesHit)
+        {
+            EnemyBase enemy = enemyCol.GetComponent<EnemyBase>();
+            if (enemy != null)
+            {
+                enemy.TakeDamage(attackDamage);
+                Debug.Log($"🗡️ Вдарили {enemy.enemyName} на {attackDamage} урону!");
+            }
+        }
+
+        // Чекаємо завершення анімації
+        if (animator.GetCurrentAnimatorStateInfo(0).IsName("Player_Attack_Anim"))
+        {
+            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+            yield return new WaitForSeconds(stateInfo.length);
+        }
+        else
+        {
+            yield return new WaitForSeconds(0.5f);
+            Debug.LogWarning("⚠️ Анімація атаки не була програна.");
+        }
+
+        animator.SetBool("isAttacking", false);
+        isAttacking = false;
     }
 }

@@ -23,7 +23,10 @@ public class Item : ScriptableObject
     public Sprite icon;
     public bool isStackable;
     public int maxStack = 1;
-
+    
+    [Header("Combat Settings")]
+    public float damage = 10f;
+    
     public GameObject worldPrefab; // предмет у світі (із фізикою)
 
     public GameObject equippedPrefab; // предмет у руці (без фізики)
