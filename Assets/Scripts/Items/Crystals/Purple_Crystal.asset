@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36f0ddced9ecdde4ab1fecb244992d60, type: 3}
+  m_Name: Purple_Crystal
+  m_EditorClassIdentifier: 
+  itemName: Purple Crystal
+  icon: {fileID: 21300000, guid: 63b54dbd252ed184da4982c5ee251b18, type: 3}
+  isStackable: 1
+  maxStack: 3
+  worldPrefab: {fileID: 6940562431369523203, guid: f4518735f6fdc4742b9e7fd009dfb532, type: 3}
+  equippedPrefab: {fileID: 6940562431369523203, guid: f4518735f6fdc4742b9e7fd009dfb532, type: 3}
+  itemType: 4
+  canBeEquipped: 0
+  equippedLocalPosition: {x: 0, y: 0, z: 0}
+  equippedLocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  pickupMethod: 0

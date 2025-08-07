@@ -1,0 +1,28 @@
+using UnityEngine;
+
+public abstract class EnemyBase : MonoBehaviour
+{
+    [Header("Enemy Stats")]
+    public string enemyName = "Enemy";
+    public float maxHealth = 100f;
+    public float moveSpeed = 2f;
+
+    protected float currentHealth;
+
+    protected virtual void Start()
+    {
+        currentHealth = maxHealth;
+    }
+
+    public virtual void TakeDamage(float amount)
+    {
+        currentHealth -= amount;
+        if (currentHealth <= 0)
+            Die();
+    }
+
+    protected virtual void Die()
+    {
+        Destroy(gameObject);
+    }
+}
