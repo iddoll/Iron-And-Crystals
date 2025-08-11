@@ -6,7 +6,8 @@ public abstract class EnemyBase : MonoBehaviour
     public string enemyName = "Enemy";
     public float maxHealth = 100f;
     public float moveSpeed = 2f;
-
+    public float attackDamage = 10f;
+    
     protected float currentHealth;
 
     protected virtual void Start()

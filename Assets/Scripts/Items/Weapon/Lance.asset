@@ -10,17 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 36f0ddced9ecdde4ab1fecb244992d60, type: 3}
-  m_Name: Axe
+  m_Name: Lance
   m_EditorClassIdentifier: 
-  itemName: Axe
-  icon: {fileID: 21300000, guid: eddf42efa7e590340b8702ce6a757494, type: 3}
+  itemName: Lance
+  icon: {fileID: 21300000, guid: 058933ec23c22d04c912dcee97b8ac41, type: 3}
   isStackable: 0
   maxStack: 1
-  damage: 50
-  attackCooldown: 3
-  worldPrefab: {fileID: 1073381191540769779, guid: 3070f7c56834d1b46b7c8cc279c17b10, type: 3}
-  equippedPrefab: {fileID: 1073381191540769779, guid: 99f31e79e70255e4ead12e38a432dcd5, type: 3}
-  itemType: 3
+  damage: 10
+  attackCooldown: 1
+  worldPrefab: {fileID: 6990279541493895248, guid: dee64947348e1284dba644471b57efd0, type: 3}
+  equippedPrefab: {fileID: 6990279541493895248, guid: 3af37fa0758d84647990116f34ed29ca, type: 3}
+  itemType: 4
   canBeEquipped: 0
   equippedLocalPosition: {x: 0, y: 0, z: 0}
   equippedLocalRotation: {x: 0, y: 0, z: 0, w: 1}

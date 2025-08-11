@@ -121,7 +121,7 @@ public class Nocktal : EnemyBase
         if (collision.CompareTag("Player"))
         {
             Debug.Log(enemyName + " торкнувся гравця!");
-            // TODO: викликати Player.TakeDamage() або інший ефект
+            PlayerController.Instance?.TakeDamage(attackDamage);
         }
     }
 

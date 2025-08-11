@@ -6,6 +6,7 @@ public enum ItemType
     Pickaxe,
     Sword,
     Axe,
+    Lance,
     Crystal
 }
 
@@ -26,6 +27,7 @@ public class Item : ScriptableObject
     
     [Header("Combat Settings")]
     public float damage = 10f;
+    public float attackCooldown = 1f;
     
     public GameObject worldPrefab; // предмет у світі (із фізикою)
 

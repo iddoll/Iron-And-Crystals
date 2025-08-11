@@ -4,18 +4,27 @@ using System.Collections;
 public class PlayerController : MonoBehaviour
 {
     public static PlayerController Instance;
-
+    
+    [Header("Player Stats")]
+    public float maxHealth = 100f;
+    private float currentHealth;
     public float moveSpeed = 2f;
     public float jumpForce = 10f;
+    
+    [Header("Combat Settings")]
+    public float damageCooldown = 1f;
+    private bool canTakeDamage = true;
+    
     private Rigidbody2D rb;
     private Animator animator;
 
-    public Transform groundCheck; // Позиція для перевірки землі
-    public LayerMask groundLayer; // Шар(и), які вважаються "землею"
-    public float groundCheckRadius = 0.2f; // Радіус кола перевірки землі
+    public Transform groundCheck;
+    public LayerMask groundLayer;
+    public float groundCheckRadius = 0.2f;
 
     public Transform holdPoint;
-    private GameObject heldObject; // Об'єкт, який тримає гравець (екіпірований префаб)
+    private GameObject heldObject;
+    private Item currentEquippedItem;
 
     private string currentTool = "None";
     public float miningRadius = 2f;
@@ -23,9 +32,11 @@ public class PlayerController : MonoBehaviour
 
     public float attackRadius = 1.5f;
     public float attackDamage = 25f;
-    public LayerMask enemyLayer; // встанови шар для ворогів
-    private bool isAttacking = false;
-
+    public LayerMask enemyLayer;
+    private bool isAttacking = false; // Використовуємо цю змінну для контролю стану
+    private bool canAttack = true;
+    public float attackCooldown = 2f;
+    
     private void Awake()
     {
         if (Instance == null) Instance = this;
@@ -36,7 +47,7 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
-        isMining = false;
+        currentHealth = maxHealth;
     }
 
     void Update()
@@ -47,50 +58,51 @@ public class PlayerController : MonoBehaviour
         rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
 
         animator.SetBool("isMooving", moveInput != 0);
-
+        
         if (moveInput > 0)
             transform.localScale = new Vector3(1, 1, 1);
         else if (moveInput < 0)
             transform.localScale = new Vector3(-1, 1, 1);
-
+        
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
         }
 
-        if (Input.GetMouseButtonDown(0) && !isMining)
+        if (Input.GetMouseButtonDown(0) && !isMining && !isAttacking && canAttack)
         {
-            if (HasPickaxe())
+            if (currentEquippedItem != null)
             {
-                Debug.Log("🔨 Маємо пікa? " + HasPickaxe());
-                OreBlock targetOre = FindNearestOre();
-                if (targetOre != null)
+                if (currentEquippedItem.itemType == ItemType.Sword || currentEquippedItem.itemType == ItemType.Axe)
                 {
-                    isMining = true;
-                    targetOre.Mine();
-                    StartCoroutine(ResetMiningAnimation());
+                    isAttacking = true;
+                    canAttack = false;
+                    animator.SetBool("isAttacking", true);
+                    StartCoroutine(ResetAttackAnimation());
+                    StartCoroutine(AttackCooldownCoroutine(currentEquippedItem.attackCooldown));
+                }
+                else if (currentEquippedItem.itemType == ItemType.Pickaxe)
+                {
+                    OreBlock targetOre = FindNearestOre();
+                    if (targetOre != null)
+                    {
+                        isMining = true;
+                        animator.SetBool("isMining", true);
+                        targetOre.Mine();
+                        StartCoroutine(ResetMiningAnimation());
+                    }
                 }
             }
-            else if (HasSword())
-            {
-                if (!isAttacking && attackDamage > 0)
-                    StartCoroutine(Attack());
-            }
-            else if (HasAxe())
-            {
-                // animator.SetTrigger("isChopping");
-            }
         }
+        
         if (Input.GetKeyDown(KeyCode.Q))
         {
-            // Викидаємо предмет з активного слоту інвентарю
-            // Перевіряємо, чи є активний слот
             if (InventorySystem.Instance != null && InventorySystem.Instance.GetActiveSlot() != null)
             {
                 Item itemInHand = InventorySystem.Instance.GetActiveSlot().GetItem();
                 if (itemInHand != null)
                 {
-                    DropItemFromInventory(itemInHand); // Викликаємо новий метод для викидання
+                    DropItemFromInventory(itemInHand);
                 }
                 else
                 {
@@ -135,6 +147,48 @@ public class PlayerController : MonoBehaviour
         isMining = false;
     }
 
+    private IEnumerator ResetAttackAnimation()
+    {
+        animator.SetBool("isAttacking", true);
+        float timer = 0f;
+        while (!animator.GetCurrentAnimatorStateInfo(0).IsName("Player_Attacking_Anim") && timer < 1.0f)
+        {
+            timer += Time.deltaTime;
+            yield return null;
+        }
+
+        if (animator.GetCurrentAnimatorStateInfo(0).IsName("Player_Attacking_Anim"))
+        {
+            Collider2D[] enemiesHit = Physics2D.OverlapCircleAll(transform.position, attackRadius, enemyLayer);
+            foreach (Collider2D enemyCol in enemiesHit)
+            {
+                EnemyBase enemy = enemyCol.GetComponent<EnemyBase>();
+                if (enemy != null)
+                {
+                    enemy.TakeDamage(currentEquippedItem.damage);
+                    Debug.Log($"🗡️ Вдарили {enemy.enemyName} на {currentEquippedItem.damage} урону!");
+                }
+            }
+
+            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+            yield return new WaitForSeconds(stateInfo.length);
+        }
+        else
+        {
+            yield return new WaitForSeconds(0.5f);
+            Debug.LogWarning("Attack animation state was not entered correctly.");
+        }
+
+        animator.SetBool("isAttacking", false);
+        isAttacking = false;
+    }
+
+    private IEnumerator AttackCooldownCoroutine(float cooldownTime)
+    {
+        yield return new WaitForSeconds(cooldownTime);
+        canAttack = true;
+    }
+
     void OnDrawGizmos()
     {
         if (groundCheck != null)
@@ -171,12 +225,10 @@ public class PlayerController : MonoBehaviour
         return nearest;
     }
 
-    // Метод для екіпіровки предмета (створює візуальний об'єкт в руці)
     public void EquipItem(Item item)
     {
-        Debug.Log($"[PlayerController] EquipItem викликано для {item?.name ?? "null Item"}"); // Додано лог для діагностики
-        
-        // Спочатку де-екіпіруємо поточний предмет, якщо він є
+        Debug.Log($"[PlayerController] EquipItem викликано для {item?.name ?? "null Item"}");
+
         if (heldObject != null)
         {
             UnequipItem();
@@ -184,25 +236,24 @@ public class PlayerController : MonoBehaviour
 
         if (item != null && item.equippedPrefab != null)
         {
+            currentEquippedItem = item;
             heldObject = Instantiate(item.equippedPrefab, holdPoint.position, Quaternion.identity, holdPoint);
             heldObject.transform.localPosition = Vector3.zero;
-            heldObject.transform.localRotation = Quaternion.Euler(0, 0, -90); // Можливо, потрібно налаштувати для різних інструментів
-            attackDamage = item.damage; // Встановлюємо урон гравця згідно з предметом
+            heldObject.transform.localRotation = Quaternion.Euler(0, 0, -90);
             SetCurrentTool(item.name);
-            // Відключаємо фізику для екіпірованого об'єкта
             Rigidbody2D rbHeld = heldObject.GetComponent<Rigidbody2D>();
             if (rbHeld != null)
             {
-                rbHeld.simulated = false; // Вимикаємо симуляцію фізики
-                rbHeld.isKinematic = true; // Робимо його кінематичним (не піддається зовнішнім силам)
+                rbHeld.simulated = false;
+                rbHeld.isKinematic = true;
             }
             SetCurrentTool(item.name);
             Debug.Log("Спроба екіпірувати: " + item.name);
         }
         else
         {
+            currentEquippedItem = null;
             SetCurrentTool("None");
-            attackDamage = 0f;
             Debug.Log("Спроба екіпірувати null-предмет або предмет без equippedPrefab. Скинуто поточний інструмент.");
         }
     }
@@ -214,39 +265,38 @@ public class PlayerController : MonoBehaviour
             Destroy(heldObject);
             heldObject = null;
             SetCurrentTool("None");
-            attackDamage = 0f;
+            currentEquippedItem = null;
             Debug.Log("Предмет успішно де-екіпіровано.");
         }
     }
 
     public void DropItemFromInventory(Item itemToDrop)
     {
-        // ... (ваш існуючий код DropItemFromInventory) ...
-        if (itemToDrop == null || itemToDrop.worldPrefab == null) //
+        if (itemToDrop == null || itemToDrop.worldPrefab == null)
         {
-            Debug.LogWarning($"Неможливо викинути {itemToDrop?.name ?? "null"}: предмет null або немає worldPrefab."); //
-            return; //
+            Debug.LogWarning($"Неможливо викинути {itemToDrop?.name ?? "null"}: предмет null або немає worldPrefab.");
+            return;
         }
 
-        Vector3 dropPosition = transform.position + (Vector3)(transform.localScale.x > 0 ? Vector2.right : Vector2.left) * 0.5f; //
+        Vector3 dropPosition = transform.position + (Vector3)(transform.localScale.x > 0 ? Vector2.right : Vector2.left) * 0.5f;
 
-        GameObject droppedWorldObject = Instantiate(itemToDrop.worldPrefab, dropPosition, Quaternion.identity); //
-        droppedWorldObject.transform.parent = null; //
+        GameObject droppedWorldObject = Instantiate(itemToDrop.worldPrefab, dropPosition, Quaternion.identity);
+        droppedWorldObject.transform.parent = null;
 
-        float randomZRotation = Random.Range(-25f, 25f); //
-        droppedWorldObject.transform.rotation = Quaternion.Euler(0, 0, randomZRotation); //
+        float randomZRotation = Random.Range(-25f, 25f);
+        droppedWorldObject.transform.rotation = Quaternion.Euler(0, 0, randomZRotation);
 
-        Rigidbody2D rbDropped = droppedWorldObject.GetComponent<Rigidbody2D>(); //
-        if (rbDropped != null) //
+        Rigidbody2D rbDropped = droppedWorldObject.GetComponent<Rigidbody2D>();
+        if (rbDropped != null)
         {
-            rbDropped.simulated = true; //
-            rbDropped.isKinematic = false; //
-            float direction = transform.localScale.x > 0 ? 1f : -1f; //
-            rbDropped.AddForce(new Vector2(direction, 0.5f) * 3f, ForceMode2D.Impulse); //
-            rbDropped.AddTorque(Random.Range(-5f, 5f), ForceMode2D.Impulse); //
+            rbDropped.simulated = true;
+            rbDropped.isKinematic = false;
+            float direction = transform.localScale.x > 0 ? 1f : -1f;
+            rbDropped.AddForce(new Vector2(direction, 0.5f) * 3f, ForceMode2D.Impulse);
+            rbDropped.AddTorque(Random.Range(-5f, 5f), ForceMode2D.Impulse);
         }
-        InventorySystem.Instance.RemoveItem(itemToDrop); //
-        Debug.Log($"Викинуто {itemToDrop.itemName} з інвентаря та у світ."); //
+        InventorySystem.Instance.RemoveItem(itemToDrop);
+        Debug.Log($"Викинуто {itemToDrop.itemName} з інвентаря та у світ.");
     }
 
     public bool IsHolding(Item item)
@@ -258,44 +308,46 @@ public class PlayerController : MonoBehaviour
         return false;
     }
     
-    private IEnumerator Attack()
+    public void TakeDamage(float amount)
     {
-        isAttacking = true;
-        animator.SetBool("isAttacking", true);
+        if (!canTakeDamage) return;
 
-        // Чекаємо, поки дійсно увійдемо в анімацію
-        float timer = 0f;
-        while (!animator.GetCurrentAnimatorStateInfo(0).IsName("Player_Attack_Anim") && timer < 1.0f)
-        {
-            timer += Time.deltaTime;
-            yield return null;
-        }
+        currentHealth -= amount;
+        Debug.Log($"Гравець отримав {amount} урону. Поточне HP: {currentHealth}");
 
-        // Завдаємо шкоди ворогам поблизу
-        Collider2D[] enemiesHit = Physics2D.OverlapCircleAll(transform.position, attackRadius, enemyLayer);
-        foreach (Collider2D enemyCol in enemiesHit)
-        {
-            EnemyBase enemy = enemyCol.GetComponent<EnemyBase>();
-            if (enemy != null)
-            {
-                enemy.TakeDamage(attackDamage);
-                Debug.Log($"🗡️ Вдарили {enemy.enemyName} на {attackDamage} урону!");
-            }
-        }
+        canTakeDamage = false;
+        StartCoroutine(DamageCooldownCoroutine());
 
-        // Чекаємо завершення анімації
-        if (animator.GetCurrentAnimatorStateInfo(0).IsName("Player_Attack_Anim"))
+        if (currentHealth <= 0)
         {
-            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-            yield return new WaitForSeconds(stateInfo.length);
+            Die();
         }
-        else
-        {
-            yield return new WaitForSeconds(0.5f);
-            Debug.LogWarning("⚠️ Анімація атаки не була програна.");
-        }
-
-        animator.SetBool("isAttacking", false);
-        isAttacking = false;
     }
+
+    private IEnumerator DamageCooldownCoroutine()
+    {
+        yield return new WaitForSeconds(damageCooldown);
+        canTakeDamage = true;
+    }
+
+    private void Die()
+    {
+        Debug.Log("Гравець помер.");
+
+        // Відключаємо можливість рухатись, стрибати та атакувати.
+        // Просто відключаємо сам компонент PlayerController.
+        this.enabled = false;
+
+        // Вимикаємо аніматор (опціонально), щоб персонаж не продовжував рухатись.
+        if (animator != null)
+        {
+            animator.enabled = false;
+        }
+        
+        // Деактивуємо об'єкт гравця через кілька секунд (опціонально)
+        // або показуємо екран "Game Over".
+        // Наприклад, можна викликати корутину, яка почекає 3 секунди, а потім перезапустить сцену.
+        // StartCoroutine(RestartLevelAfterDelay(3f));
+    }
+    
 }
