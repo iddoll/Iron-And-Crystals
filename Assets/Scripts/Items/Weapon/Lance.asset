@@ -16,10 +16,10 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 058933ec23c22d04c912dcee97b8ac41, type: 3}
   isStackable: 0
   maxStack: 1
-  damage: 10
-  attackCooldown: 1
+  damage: 20
+  attackCooldown: 2
   worldPrefab: {fileID: 6990279541493895248, guid: dee64947348e1284dba644471b57efd0, type: 3}
-  equippedPrefab: {fileID: 6990279541493895248, guid: 3af37fa0758d84647990116f34ed29ca, type: 3}
+  equippedPrefab: {fileID: 6990279541493895248, guid: 91cf741fdce91d54b8d868652c024dbc, type: 3}
   itemType: 4
   canBeEquipped: 0
   equippedLocalPosition: {x: 0, y: 0, z: 0}

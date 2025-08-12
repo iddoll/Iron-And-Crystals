@@ -50,7 +50,7 @@ public class PlayerController : MonoBehaviour
         currentHealth = maxHealth;
     }
 
-    void Update()
+    private void Update()
     {
         bool isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 
@@ -59,6 +59,12 @@ public class PlayerController : MonoBehaviour
 
         animator.SetBool("isMooving", moveInput != 0);
         
+        // Додано: Idle для списа
+        if (currentEquippedItem != null && currentEquippedItem.itemType == ItemType.Lance && !isAttacking && !isMining)
+        {
+            animator.Play("Spear_Idle");
+        }
+
         if (moveInput > 0)
             transform.localScale = new Vector3(1, 1, 1);
         else if (moveInput < 0)
@@ -69,11 +75,20 @@ public class PlayerController : MonoBehaviour
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
         }
 
+        // Атака
         if (Input.GetMouseButtonDown(0) && !isMining && !isAttacking && canAttack)
         {
             if (currentEquippedItem != null)
             {
-                if (currentEquippedItem.itemType == ItemType.Sword || currentEquippedItem.itemType == ItemType.Axe)
+                if (currentEquippedItem.itemType == ItemType.Lance)
+                {
+                    isAttacking = true;
+                    canAttack = false;
+                    animator.Play("Player_Lance_Attack_Anim");
+                    StartCoroutine(ResetSpearAttackAnimation());
+                    StartCoroutine(AttackCooldownCoroutine(currentEquippedItem.attackCooldown));
+                }
+                else if (currentEquippedItem.itemType == ItemType.Sword || currentEquippedItem.itemType == ItemType.Axe)
                 {
                     isAttacking = true;
                     canAttack = false;
@@ -94,32 +109,34 @@ public class PlayerController : MonoBehaviour
                 }
             }
         }
-        
-        if (Input.GetKeyDown(KeyCode.Q))
+    }
+
+    // Корутіна для списа
+    private IEnumerator ResetSpearAttackAnimation()
+    {
+        // Чекаємо, поки анімація почнеться
+        yield return new WaitUntil(() => animator.GetCurrentAnimatorStateInfo(0).IsName("Player_Lance_Attack_Anim"));
+
+        // Тут можна нанести урон ворогам
+        Collider2D[] enemiesHit = Physics2D.OverlapCircleAll(transform.position, attackRadius, enemyLayer);
+        foreach (Collider2D enemyCol in enemiesHit)
         {
-            if (InventorySystem.Instance != null && InventorySystem.Instance.GetActiveSlot() != null)
+            EnemyBase enemy = enemyCol.GetComponent<EnemyBase>();
+            if (enemy != null)
             {
-                Item itemInHand = InventorySystem.Instance.GetActiveSlot().GetItem();
-                if (itemInHand != null)
-                {
-                    DropItemFromInventory(itemInHand);
-                }
-                else
-                {
-                    Debug.Log("Нічого викидати з активного слота.");
-                }
-            }
-            else
-            {
-                Debug.Log("Активний слот інвентарю не знайдено або порожній.");
+                enemy.TakeDamage(currentEquippedItem.damage);
+                Debug.Log($"🏹 Вдарили списом {enemy.enemyName} на {currentEquippedItem.damage} урону!");
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.Alpha1)) InventorySystem.Instance.SetActiveSlot(0);
-        if (Input.GetKeyDown(KeyCode.Alpha2)) InventorySystem.Instance.SetActiveSlot(1);
-        if (Input.GetKeyDown(KeyCode.Alpha3)) InventorySystem.Instance.SetActiveSlot(2);
-        if (Input.GetKeyDown(KeyCode.Alpha4)) InventorySystem.Instance.SetActiveSlot(3);
-        if (Input.GetKeyDown(KeyCode.Alpha5)) InventorySystem.Instance.SetActiveSlot(4);
+        // Чекаємо завершення анімації
+        AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+        yield return new WaitForSeconds(stateInfo.length);
+
+        isAttacking = false;
+
+        // Повертаємось в Idle для списа
+        animator.Play("Player_Idle_Lance_Anim");
     }
 
     private IEnumerator ResetMiningAnimation()
@@ -234,29 +251,35 @@ public class PlayerController : MonoBehaviour
             UnequipItem();
         }
 
-        if (item != null && item.equippedPrefab != null)
+        if (item != null && item.equippedPrefab != null )
         {
             currentEquippedItem = item;
             heldObject = Instantiate(item.equippedPrefab, holdPoint.position, Quaternion.identity, holdPoint);
             heldObject.transform.localPosition = Vector3.zero;
             heldObject.transform.localRotation = Quaternion.Euler(0, 0, -90);
             SetCurrentTool(item.name);
+
             Rigidbody2D rbHeld = heldObject.GetComponent<Rigidbody2D>();
             if (rbHeld != null)
             {
                 rbHeld.simulated = false;
                 rbHeld.isKinematic = true;
             }
-            SetCurrentTool(item.name);
+
+            // ✅ Оновлюємо стан аніматора
+            animator.SetBool("hasLance", item.itemType == ItemType.Lance);
+
             Debug.Log("Спроба екіпірувати: " + item.name);
         }
         else
         {
             currentEquippedItem = null;
             SetCurrentTool("None");
-            Debug.Log("Спроба екіпірувати null-предмет або предмет без equippedPrefab. Скинуто поточний інструмент.");
+            animator.SetBool("hasLance", false); // При знятті зброї
+            Debug.Log("Скинуто поточний інструмент.");
         }
     }
+
 
     public void UnequipItem()
     {
