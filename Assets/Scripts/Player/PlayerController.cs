@@ -59,12 +59,6 @@ public class PlayerController : MonoBehaviour
 
         animator.SetBool("isMooving", moveInput != 0);
         
-        // Додано: Idle для списа
-        if (currentEquippedItem != null && currentEquippedItem.itemType == ItemType.Lance && !isAttacking && !isMining)
-        {
-            animator.Play("Spear_Idle");
-        }
-
         if (moveInput > 0)
             transform.localScale = new Vector3(1, 1, 1);
         else if (moveInput < 0)
@@ -114,10 +108,11 @@ public class PlayerController : MonoBehaviour
     // Корутіна для списа
     private IEnumerator ResetSpearAttackAnimation()
     {
-        // Чекаємо, поки анімація почнеться
-        yield return new WaitUntil(() => animator.GetCurrentAnimatorStateInfo(0).IsName("Player_Lance_Attack_Anim"));
-
-        // Тут можна нанести урон ворогам
+        animator.SetBool("isAttacking", true);
+        // Очікуємо 0.1 секунди, щоб анімація точно почалась.
+        yield return new WaitForSeconds(0.1f); 
+    
+        // Наносимо шкоду ворогам під час анімації.
         Collider2D[] enemiesHit = Physics2D.OverlapCircleAll(transform.position, attackRadius, enemyLayer);
         foreach (Collider2D enemyCol in enemiesHit)
         {
@@ -129,14 +124,15 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        // Чекаємо завершення анімації
+        // Очікуємо завершення анімації (або її тривалості).
         AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+        // Використовуємо `stateInfo.length` для точної тривалості анімації.
         yield return new WaitForSeconds(stateInfo.length);
 
         isAttacking = false;
-
-        // Повертаємось в Idle для списа
-        animator.Play("Player_Idle_Lance_Anim");
+        // Повертаємось в Idle для списа.
+        animator.Play("Player_Lance_Idle_Anim");
+        animator.SetBool("isAttacking", false);
     }
 
     private IEnumerator ResetMiningAnimation()
