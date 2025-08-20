@@ -10,6 +10,8 @@ public class PlayerController : MonoBehaviour
     private float currentHealth;
     public float moveSpeed = 2f;
     public float jumpForce = 10f;
+   
+    private PlayerHealthUI healthUI;
     
     [Header("Combat Settings")]
     public float damageCooldown = 1f;
@@ -48,6 +50,13 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         currentHealth = maxHealth;
+        
+        healthUI = FindObjectOfType<PlayerHealthUI>();
+        if (healthUI != null)
+        {
+            healthUI.InitHearts(20); // 20 секцій
+            healthUI.UpdateHearts((int)currentHealth, (int)maxHealth);
+        }
     }
 
     private void Update()
@@ -332,7 +341,11 @@ public class PlayerController : MonoBehaviour
         if (!canTakeDamage) return;
 
         currentHealth -= amount;
+        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         Debug.Log($"Гравець отримав {amount} урону. Поточне HP: {currentHealth}");
+
+        if (healthUI != null)
+            healthUI.UpdateHearts((int)currentHealth, (int)maxHealth);
 
         canTakeDamage = false;
         StartCoroutine(DamageCooldownCoroutine());

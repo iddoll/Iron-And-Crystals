@@ -7,7 +7,10 @@ public abstract class EnemyBase : MonoBehaviour
     public float maxHealth = 100f;
     public float moveSpeed = 2f;
     public float attackDamage = 10f;
-    
+    public float CurrentHealth => currentHealth;          
+    public float MaxHealth => maxHealth;                 
+    public float CurrentHealthNormalized => currentHealth / maxHealth; 
+
     protected float currentHealth;
 
     protected virtual void Start()
