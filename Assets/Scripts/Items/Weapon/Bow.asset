@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36f0ddced9ecdde4ab1fecb244992d60, type: 3}
+  m_Name: Bow
+  m_EditorClassIdentifier: 
+  itemName: Bow
+  icon: {fileID: 21300000, guid: ba59d2119ba764842bd52adb7a5d2ef1, type: 3}
+  isStackable: 0
+  maxStack: 1
+  damage: 10
+  attackCooldown: 1
+  worldPrefab: {fileID: 7098377266080398596, guid: d004df7c9a1a9b14baaba467f7a1e4f2, type: 3}
+  equippedPrefab: {fileID: 7098377266080398596, guid: e8e9503223464d444b72905a2c5bd979, type: 3}
+  itemType: 5
+  canBeEquipped: 0
+  equippedLocalPosition: {x: 0, y: 0, z: 0}
+  equippedLocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  pickupMethod: 1

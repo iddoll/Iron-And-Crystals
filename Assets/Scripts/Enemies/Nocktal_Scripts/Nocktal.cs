@@ -6,17 +6,30 @@ using UnityEngine;
 public class Nocktal : EnemyBase
 {
     [Header("Ghost Settings")]
-    public float floatAmplitude = 0.2f;  // амплітуда вертикального коливання
-    public float floatFrequency = 2f;    // швидкість коливання
+    public float floatAmplitude = 0.2f;
+    public float floatFrequency = 2f;
 
     [Header("AI Settings")]
-    public float followRadius = 5f;      // радіус, в якому починає слідувати
-    public float stopDistance = 0.5f;    // відстань до гравця, на якій зупиняється
-    [Range(0f, 1f)] public float verticalLerp = 0.7f; // плавність y офсету
+    public float followRadius = 5f;
+    public float stopDistance = 0.5f;
+    [Range(0f, 1f)] public float verticalLerp = 0.7f;
 
     [Header("Sprite / Facing")]
-    public bool spriteFacesRightByDefault = true; // якщо спрайт "лицем" дивиться вправо — true, інакше false
-    public bool useFlipXInsteadOfScale = true;    // зручніше інколи використовувати SpriteRenderer.flipX
+    public bool spriteFacesRightByDefault = true;
+    public bool useFlipXInsteadOfScale = true;
+
+    [Header("Attack Settings")]
+    public float attackCooldown = 1.2f;
+    private float lastAttackTime;
+
+    [Header("Attack Zone")]
+    public EnemyAttackZone attackZone;
+    public Transform attackZoneTransform;
+    public float attackZoneLocalX = 0.8f;
+    public float attackZoneLocalY = 0.0f;
+
+    private static readonly int IsAttackingHash = Animator.StringToHash("isAttacking");
+    private static readonly int IsMovingHash = Animator.StringToHash("isMooving");
 
     private Transform player;
     private Vector3 startPosition;
@@ -24,9 +37,6 @@ public class Nocktal : EnemyBase
     private Rigidbody2D rb;
     private SpriteRenderer sr;
     private Animator animator;
-
-    // Animator param name
-    private static readonly int IsMovingHash = Animator.StringToHash("isMooving");
 
     protected override void Start()
     {
@@ -38,61 +48,78 @@ public class Nocktal : EnemyBase
         sr = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
 
-        // Якщо Rigidbody у Dynamic і ми керуємо через MovePosition, краще зробити interpolation
         rb.interpolation = RigidbodyInterpolation2D.Interpolate;
-        // Якщо привид повинен пролітати крізь об'єкти — можна ставити bodyType = Kinematic
-        // rb.bodyType = RigidbodyType2D.Kinematic; // опціонально
+        lastAttackTime = -attackCooldown;
     }
 
     void FixedUpdate()
     {
         if (player == null) return;
 
-        float dist = Vector2.Distance(transform.position, player.position);
+        bool isCurrentlyAttacking = animator.GetBool(IsAttackingHash);
+        bool playerInFollowRange = Vector2.Distance(transform.position, player.position) <= followRadius;
+        bool playerInAttackZone = attackZone != null && attackZone.playerInZone;
 
-        // Вертикальна хвиля відносно стартової позиції
-        float yOffset = Mathf.Sin(Time.time * floatFrequency) * floatAmplitude;
-        float targetY = startPosition.y + yOffset;
+        // Початкова цільова позиція - поточна позиція
+        Vector2 targetPosition = rb.position;
+        bool isMoving = false;
 
-        // Якщо гравець у радіусі — переходимо в режим слідування
-        if (dist <= followRadius)
+        // Логіка атаки та руху
+        if (playerInAttackZone)
         {
-            // Визначаємо позицію до якої рухатися
-            Vector2 direction = (player.position - transform.position);
-            float distanceToKeep = Mathf.Max(stopDistance, 0f);
-
-            Vector2 moveTarget;
-            if (direction.magnitude > distanceToKeep)
+            // Якщо гравець у зоні атаки, зупиняємо рух і починаємо/продовжуємо атакувати
+            isMoving = false;
+            if (Time.time - lastAttackTime >= attackCooldown)
             {
-                Vector2 dirNorm = direction.normalized;
-                moveTarget = (Vector2)transform.position + dirNorm * moveSpeed * Time.fixedDeltaTime;
+                TryAttack();
             }
-            else
+        }
+        else if (!isCurrentlyAttacking && playerInFollowRange)
+        {
+            // Рух до гравця, якщо він у радіусі, але не в зоні атаки
+            if (Vector2.Distance(transform.position, player.position) > stopDistance)
             {
-                // Залишатися на місці (але застосувати вертикальний офсет)
-                moveTarget = transform.position;
+                Vector2 direction = (player.position - transform.position).normalized;
+                targetPosition += direction * moveSpeed * Time.fixedDeltaTime;
+                isMoving = true;
             }
+        }
+        
+        // Вертикальне коливання завжди застосовується
+        float yOffset = Mathf.Sin(Time.time * floatFrequency) * floatAmplitude;
+        targetPosition.y = Mathf.Lerp(rb.position.y, startPosition.y + yOffset, verticalLerp);
+        
+        // Застосовуємо рух
+        rb.MovePosition(targetPosition);
 
-            // Застосуємо вертикальний офсет плавно
-            moveTarget.y = Mathf.Lerp(transform.position.y, targetY, verticalLerp);
+        // Оновлюємо анімацію
+        animator.SetBool(IsMovingHash, isMoving);
 
-            rb.MovePosition(moveTarget);
-
-            // Анімація руху
-            if (animator != null) animator.SetBool(IsMovingHash, true);
-
-            // Поворот/фліп в бік гравця
+        // Поворот (завжди, якщо в радіусі слідування)
+        if (playerInFollowRange)
+        {
             HandleFacing(player.position.x - transform.position.x);
         }
-        else
-        {
-            // Поза радіусом — Idle: лишаємось/плаваєм на місці
-            Vector2 idlePos = transform.position;
-            idlePos.y = Mathf.Lerp(transform.position.y, targetY, verticalLerp);
-            rb.MovePosition(idlePos);
+    }
 
-            if (animator != null) animator.SetBool(IsMovingHash, false);
+    private void TryAttack()
+    {
+        lastAttackTime = Time.time;
+        animator.SetBool(IsAttackingHash, true);
+    }
+
+    public void AE_DealDamage()
+    {
+        if (attackZone != null && attackZone.playerInZone && attackZone.player != null)
+        {
+            PlayerController.Instance?.TakeDamage(attackDamage);
+            Debug.Log($"{enemyName} наніс урон по гравцю.");
         }
+    }
+
+    public void AE_AttackFinished()
+    {
+        animator.SetBool(IsAttackingHash, false);
     }
 
     private void HandleFacing(float dirX)
@@ -101,38 +128,28 @@ public class Nocktal : EnemyBase
 
         float sign = Mathf.Sign(dirX);
 
-        // Якщо спрайт у вихідному вигляді "лицем" вправо, то при dirX>0 потрібно показувати "право"
-        // Але у тебе спрайт може бути намальований вліво — врахуй це:
-        if (!spriteFacesRightByDefault)
-            sign = -sign; // інвертуємо логіку, якщо спрайт "лицем" дивиться вліво по замовчуванню
-
         if (useFlipXInsteadOfScale && sr != null)
         {
-            sr.flipX = sign < 0f ? true : false;
+            sr.flipX = sign < 0f;
         }
         else
         {
             transform.localScale = new Vector3(Mathf.Abs(initialScale.x) * sign, initialScale.y, initialScale.z);
         }
+        UpdateAttackZoneSide(sign);
     }
 
-    private void OnTriggerEnter2D(Collider2D collision)
+    private void UpdateAttackZoneSide(float sign)
     {
-        if (collision.CompareTag("Player"))
+        if (attackZoneTransform == null) return;
+
+        if (useFlipXInsteadOfScale)
         {
-            Debug.Log(enemyName + " торкнувся гравця!");
-            PlayerController.Instance?.TakeDamage(attackDamage);
+            attackZoneTransform.localPosition = new Vector3(
+                Mathf.Abs(attackZoneLocalX) * Mathf.Sign(sign),
+                attackZoneLocalY,
+                attackZoneTransform.localPosition.z
+            );
         }
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        // Візуалізація радіусу слідування
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, followRadius);
-
-        // Візуалізація зони зупинки
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, stopDistance);
     }
 }

@@ -39,6 +39,14 @@ public class PlayerController : MonoBehaviour
     private bool canAttack = true;
     public float attackCooldown = 2f;
     
+    [Header("Bow Shooting")]
+    [SerializeField] private Transform firePoint; // точка виходу стріли
+    [SerializeField] private GameObject arrowPrefab; // префаб стріли
+    [SerializeField] private float bowCooldown = 0.5f; // час між пострілами
+
+    private bool isShooting;
+    private float lastShotTime;
+
     private void Awake()
     {
         if (Instance == null) Instance = this;
@@ -108,6 +116,17 @@ public class PlayerController : MonoBehaviour
                         animator.SetBool("isMining", true);
                         targetOre.Mine();
                         StartCoroutine(ResetMiningAnimation());
+                    }
+                }
+                else if (currentEquippedItem.itemType == ItemType.Bow)
+                {
+                    if (Time.time >= lastShotTime + bowCooldown)
+                    {
+                        isShooting = true;
+                        animator.SetBool("isShooting", true);
+
+                        // постріл відбувається через Animation Event (на середині анімації)
+                        lastShotTime = Time.time;
                     }
                 }
             }
@@ -246,6 +265,25 @@ public class PlayerController : MonoBehaviour
         }
         return nearest;
     }
+
+    public void ShootArrow()
+    {
+        if (arrowPrefab == null || firePoint == null) return;
+
+        GameObject arrowObj = Instantiate(arrowPrefab, firePoint.position, Quaternion.identity);
+        Arrow arrow = arrowObj.GetComponent<Arrow>();
+
+        bool facingRight = transform.localScale.x > 0; // перевірка напрямку гравця
+        arrow.Shoot(facingRight);
+    }
+
+
+    public void StopShooting()
+    {
+        isShooting = false;
+        animator.SetBool("isShooting", false);
+    }
+
 
     public void EquipItem(Item item)
     {

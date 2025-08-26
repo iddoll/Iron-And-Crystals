@@ -7,6 +7,8 @@ public enum ItemType
     Sword,
     Axe,
     Lance,
+    Bow,
+    Arrow,
     Crystal
 }
 
