@@ -32,17 +32,18 @@ public class PlayerController : MonoBehaviour
     public float miningRadius = 2f;
     private bool isMining = false;
 
-    public float attackRadius = 1.5f;
-    public float attackDamage = 25f;
-    public LayerMask enemyLayer;
-    private bool isAttacking = false; // Використовуємо цю змінну для контролю стану
+    private bool isAttacking = false;
     private bool canAttack = true;
-    public float attackCooldown = 2f;
+    
+    [Header("Attack Zones")]
+    public AttackZone swordAttackZone;
+    public AttackZone axeAttackZone;
+    public AttackZone lanceAttackZone;
     
     [Header("Bow Shooting")]
-    [SerializeField] private Transform firePoint; // точка виходу стріли
-    [SerializeField] private GameObject arrowPrefab; // префаб стріли
-    [SerializeField] private float bowCooldown = 0.5f; // час між пострілами
+    [SerializeField] private Transform firePoint;
+    [SerializeField] private GameObject arrowPrefab;
+    [SerializeField] private float bowCooldown = 0.5f;
 
     private bool isShooting;
     private float lastShotTime;
@@ -62,7 +63,7 @@ public class PlayerController : MonoBehaviour
         healthUI = FindObjectOfType<PlayerHealthUI>();
         if (healthUI != null)
         {
-            healthUI.InitHearts(20); // 20 секцій
+            healthUI.InitHearts(20);
             healthUI.UpdateHearts((int)currentHealth, (int)maxHealth);
         }
     }
@@ -86,7 +87,6 @@ public class PlayerController : MonoBehaviour
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
         }
 
-        // Атака
         if (Input.GetMouseButtonDown(0) && !isMining && !isAttacking && canAttack)
         {
             if (currentEquippedItem != null)
@@ -124,8 +124,6 @@ public class PlayerController : MonoBehaviour
                     {
                         isShooting = true;
                         animator.SetBool("isShooting", true);
-
-                        // постріл відбувається через Animation Event (на середині анімації)
                         lastShotTime = Time.time;
                     }
                 }
@@ -133,32 +131,17 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // Корутіна для списа
+    // Корутина для списа
     private IEnumerator ResetSpearAttackAnimation()
     {
         animator.SetBool("isAttacking", true);
-        // Очікуємо 0.1 секунди, щоб анімація точно почалась.
-        yield return new WaitForSeconds(0.1f); 
-    
-        // Наносимо шкоду ворогам під час анімації.
-        Collider2D[] enemiesHit = Physics2D.OverlapCircleAll(transform.position, attackRadius, enemyLayer);
-        foreach (Collider2D enemyCol in enemiesHit)
-        {
-            EnemyBase enemy = enemyCol.GetComponent<EnemyBase>();
-            if (enemy != null)
-            {
-                enemy.TakeDamage(currentEquippedItem.damage);
-                Debug.Log($"🏹 Вдарили списом {enemy.enemyName} на {currentEquippedItem.damage} урону!");
-            }
-        }
+        lanceAttackZone.Activate();
 
-        // Очікуємо завершення анімації (або її тривалості).
         AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-        // Використовуємо `stateInfo.length` для точної тривалості анімації.
         yield return new WaitForSeconds(stateInfo.length);
 
         isAttacking = false;
-        // Повертаємось в Idle для списа.
+        lanceAttackZone.Deactivate();
         animator.Play("Player_Lance_Idle_Anim");
         animator.SetBool("isAttacking", false);
     }
@@ -188,40 +171,46 @@ public class PlayerController : MonoBehaviour
         isMining = false;
     }
 
+    // Корутина для меча/сокири
     private IEnumerator ResetAttackAnimation()
     {
         animator.SetBool("isAttacking", true);
-        float timer = 0f;
-        while (!animator.GetCurrentAnimatorStateInfo(0).IsName("Player_Attacking_Anim") && timer < 1.0f)
-        {
-            timer += Time.deltaTime;
-            yield return null;
-        }
 
-        if (animator.GetCurrentAnimatorStateInfo(0).IsName("Player_Attacking_Anim"))
+        AttackZone currentAttackZone = GetCurrentAttackZone();
+        if (currentAttackZone != null)
         {
-            Collider2D[] enemiesHit = Physics2D.OverlapCircleAll(transform.position, attackRadius, enemyLayer);
-            foreach (Collider2D enemyCol in enemiesHit)
-            {
-                EnemyBase enemy = enemyCol.GetComponent<EnemyBase>();
-                if (enemy != null)
-                {
-                    enemy.TakeDamage(currentEquippedItem.damage);
-                    Debug.Log($"🗡️ Вдарили {enemy.enemyName} на {currentEquippedItem.damage} урону!");
-                }
-            }
+            currentAttackZone.Activate();
 
             AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
             yield return new WaitForSeconds(stateInfo.length);
+
+            currentAttackZone.Deactivate();
         }
         else
         {
             yield return new WaitForSeconds(0.5f);
-            Debug.LogWarning("Attack animation state was not entered correctly.");
+            Debug.LogWarning("Attack zone not found.");
         }
 
         animator.SetBool("isAttacking", false);
         isAttacking = false;
+    }
+
+    private AttackZone GetCurrentAttackZone()
+    {
+        if (currentEquippedItem == null) return null;
+        if (currentEquippedItem.itemType == ItemType.Sword) return swordAttackZone;
+        if (currentEquippedItem.itemType == ItemType.Axe) return axeAttackZone;
+        return null;
+    }
+    
+    // Публічний метод для нанесення шкоди, який викликається AttackZone
+    public void DealDamageToEnemy(EnemyBase enemy)
+    {
+        if (currentEquippedItem != null && enemy != null)
+        {
+            enemy.TakeDamage(currentEquippedItem.damage);
+        }
     }
 
     private IEnumerator AttackCooldownCoroutine(float cooldownTime)
@@ -273,17 +262,15 @@ public class PlayerController : MonoBehaviour
         GameObject arrowObj = Instantiate(arrowPrefab, firePoint.position, Quaternion.identity);
         Arrow arrow = arrowObj.GetComponent<Arrow>();
 
-        bool facingRight = transform.localScale.x > 0; // перевірка напрямку гравця
+        bool facingRight = transform.localScale.x > 0;
         arrow.Shoot(facingRight);
     }
-
 
     public void StopShooting()
     {
         isShooting = false;
         animator.SetBool("isShooting", false);
     }
-
 
     public void EquipItem(Item item)
     {
@@ -309,7 +296,6 @@ public class PlayerController : MonoBehaviour
                 rbHeld.isKinematic = true;
             }
 
-            // ✅ Оновлюємо стан аніматора
             animator.SetBool("hasLance", item.itemType == ItemType.Lance);
 
             Debug.Log("Спроба екіпірувати: " + item.name);
@@ -318,11 +304,10 @@ public class PlayerController : MonoBehaviour
         {
             currentEquippedItem = null;
             SetCurrentTool("None");
-            animator.SetBool("hasLance", false); // При знятті зброї
+            animator.SetBool("hasLance", false);
             Debug.Log("Скинуто поточний інструмент.");
         }
     }
-
 
     public void UnequipItem()
     {
@@ -361,17 +346,14 @@ public class PlayerController : MonoBehaviour
             rbDropped.AddForce(new Vector2(direction, 0.5f) * 3f, ForceMode2D.Impulse);
             rbDropped.AddTorque(Random.Range(-5f, 5f), ForceMode2D.Impulse);
         }
-        InventorySystem.Instance.RemoveItem(itemToDrop);
+        // InventorySystem.Instance.RemoveItem(itemToDrop);
         Debug.Log($"Викинуто {itemToDrop.itemName} з інвентаря та у світ.");
     }
 
     public bool IsHolding(Item item)
     {
         if (heldObject == null || item == null) return false;
-
-        if (currentTool == item.name) return true;
-
-        return false;
+        return currentTool == item.name;
     }
     
     public void TakeDamage(float amount)
@@ -403,21 +385,11 @@ public class PlayerController : MonoBehaviour
     private void Die()
     {
         Debug.Log("Гравець помер.");
-
-        // Відключаємо можливість рухатись, стрибати та атакувати.
-        // Просто відключаємо сам компонент PlayerController.
         this.enabled = false;
 
-        // Вимикаємо аніматор (опціонально), щоб персонаж не продовжував рухатись.
         if (animator != null)
         {
             animator.enabled = false;
         }
-        
-        // Деактивуємо об'єкт гравця через кілька секунд (опціонально)
-        // або показуємо екран "Game Over".
-        // Наприклад, можна викликати корутину, яка почекає 3 секунди, а потім перезапустить сцену.
-        // StartCoroutine(RestartLevelAfterDelay(3f));
     }
-    
 }

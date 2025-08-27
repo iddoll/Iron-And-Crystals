@@ -28,6 +28,12 @@ public class Nocktal : EnemyBase
     public float attackZoneLocalX = 0.8f;
     public float attackZoneLocalY = 0.0f;
 
+    [Header("Regeneration Settings")]
+    public float regenDelay = 3f;              // через скільки секунд після останнього урону почнеться реген
+    public float regenPerSecond = 2f;          // швидкість регену HP
+    private float lastHitTime;                 // час останнього урону
+
+    
     private static readonly int IsAttackingHash = Animator.StringToHash("isAttacking");
     private static readonly int IsMovingHash = Animator.StringToHash("isMooving");
 
@@ -83,6 +89,11 @@ public class Nocktal : EnemyBase
                 targetPosition += direction * moveSpeed * Time.fixedDeltaTime;
                 isMoving = true;
             }
+            
+            if (player == null) return;
+
+            HandleAI();
+            HandleRegeneration();
         }
         
         // Вертикальне коливання завжди застосовується
@@ -99,6 +110,54 @@ public class Nocktal : EnemyBase
         if (playerInFollowRange)
         {
             HandleFacing(player.position.x - transform.position.x);
+        }
+    }
+    private void HandleAI()
+    {
+        bool isCurrentlyAttacking = animator.GetBool(IsAttackingHash);
+        bool playerInFollowRange = Vector2.Distance(transform.position, player.position) <= followRadius;
+        bool playerInAttackZone = attackZone != null && attackZone.playerInZone;
+
+        Vector2 targetPosition = rb.position;
+        bool isMoving = false;
+
+        if (playerInAttackZone)
+        {
+            isMoving = false;
+            if (Time.time - lastAttackTime >= attackCooldown)
+            {
+                TryAttack();
+            }
+        }
+        else if (!isCurrentlyAttacking && playerInFollowRange)
+        {
+            if (Vector2.Distance(transform.position, player.position) > stopDistance)
+            {
+                Vector2 direction = (player.position - transform.position).normalized;
+                targetPosition += direction * moveSpeed * Time.fixedDeltaTime;
+                isMoving = true;
+            }
+        }
+
+        float yOffset = Mathf.Sin(Time.time * floatFrequency) * floatAmplitude;
+        targetPosition.y = Mathf.Lerp(rb.position.y, startPosition.y + yOffset, verticalLerp);
+
+        rb.MovePosition(targetPosition);
+        animator.SetBool(IsMovingHash, isMoving);
+
+        if (playerInFollowRange)
+        {
+            HandleFacing(player.position.x - transform.position.x);
+        }
+    }
+    private void HandleRegeneration()
+    {
+        if (Time.time - lastHitTime < regenDelay) return;
+
+        if (currentHealth < maxHealth)
+        {
+            currentHealth += regenPerSecond * Time.fixedDeltaTime;
+            currentHealth = Mathf.Min(currentHealth, maxHealth);
         }
     }
 
@@ -137,6 +196,12 @@ public class Nocktal : EnemyBase
             transform.localScale = new Vector3(Mathf.Abs(initialScale.x) * sign, initialScale.y, initialScale.z);
         }
         UpdateAttackZoneSide(sign);
+    }
+    
+    public override void TakeDamage(float damage)
+    {
+        base.TakeDamage(damage);
+        lastHitTime = Time.time;
     }
 
     private void UpdateAttackZoneSide(float sign)
