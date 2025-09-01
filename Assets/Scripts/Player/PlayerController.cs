@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using UnityEngine.EventSystems; // 🔧 Додано для використання EventSystem
 
 public class PlayerController : MonoBehaviour
 {
@@ -70,6 +71,19 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        if (ShouldBlockInput())
+        {
+            rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
+            animator.SetBool("isMooving", false);
+            return;
+        }
+
+        // 🔒 Якщо курсор над UI → теж блокуємо
+        if (EventSystem.current.IsPointerOverGameObject())
+        {
+            return;
+        }
+
         bool isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 
         float moveInput = Input.GetAxis("Horizontal");
@@ -131,6 +145,18 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    private bool ShouldBlockInput()
+    {
+        if (InventoryUIManager.Instance != null && InventoryUIManager.Instance.IsInventoryOpen())
+            return true;
+
+        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            return true;
+
+        return false;
+    }
+
+    
     // Корутина для списа
     private IEnumerator ResetSpearAttackAnimation()
     {
@@ -181,6 +207,15 @@ public class PlayerController : MonoBehaviour
         {
             currentAttackZone.Activate();
 
+            // Чекаємо поки реально увійде в анімацію атаки
+            float timer = 0f;
+            while (!animator.GetCurrentAnimatorStateInfo(0).IsTag("Attack") && timer < 1f)
+            {
+                timer += Time.deltaTime;
+                yield return null;
+            }
+
+            // Чекаємо закінчення самої анімації
             AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
             yield return new WaitForSeconds(stateInfo.length);
 
@@ -195,7 +230,7 @@ public class PlayerController : MonoBehaviour
         animator.SetBool("isAttacking", false);
         isAttacking = false;
     }
-
+    
     private AttackZone GetCurrentAttackZone()
     {
         if (currentEquippedItem == null) return null;
@@ -212,7 +247,30 @@ public class PlayerController : MonoBehaviour
             enemy.TakeDamage(currentEquippedItem.damage);
         }
     }
+// Викликається з Animation Event
+    public void AttackStart()
+    {
+        AttackZone currentAttackZone = GetCurrentAttackZone();
+        if (currentAttackZone != null)
+        {
+            currentAttackZone.Activate();
+            Debug.Log("AttackStart → зона атаки активована");
+        }
+    }
 
+    // Викликається з Animation Event
+    public void AttackEnd()
+    {
+        AttackZone currentAttackZone = GetCurrentAttackZone();
+        if (currentAttackZone != null)
+        {
+            currentAttackZone.Deactivate();
+            Debug.Log("AttackEnd → зона атаки деактивована");
+        }
+
+        animator.SetBool("isAttacking", false);
+        isAttacking = false;
+    }
     private IEnumerator AttackCooldownCoroutine(float cooldownTime)
     {
         yield return new WaitForSeconds(cooldownTime);
@@ -296,18 +354,26 @@ public class PlayerController : MonoBehaviour
                 rbHeld.isKinematic = true;
             }
 
+            // --- ось тут нове ---
             animator.SetBool("hasLance", item.itemType == ItemType.Lance);
-
+            animator.SetBool("hasSword", item.itemType == ItemType.Sword);
+            animator.SetBool("hasAxe",   item.itemType == ItemType.Axe);
+            
             Debug.Log("Спроба екіпірувати: " + item.name);
         }
         else
         {
             currentEquippedItem = null;
             SetCurrentTool("None");
+
             animator.SetBool("hasLance", false);
+            animator.SetBool("hasSword", false);
+            animator.SetBool("hasAxe",   false);
+            
             Debug.Log("Скинуто поточний інструмент.");
         }
     }
+
 
     public void UnequipItem()
     {
@@ -329,6 +395,16 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        // --- якщо цей предмет у активному слоті ---
+        if (InventorySystem.Instance.GetActiveSlot() != null &&
+            InventorySystem.Instance.GetActiveSlot().GetItem() == itemToDrop)
+        {
+            UnequipItem(); // видаляє з holdPoint + скидає tool
+            Debug.Log($"[PlayerController] {itemToDrop.itemName} був у активному слоті → де-екіпіровано при дропі.");
+        }
+
+
+        // --- спавнимо предмет у світі ---
         Vector3 dropPosition = transform.position + (Vector3)(transform.localScale.x > 0 ? Vector2.right : Vector2.left) * 0.5f;
 
         GameObject droppedWorldObject = Instantiate(itemToDrop.worldPrefab, dropPosition, Quaternion.identity);
@@ -346,9 +422,13 @@ public class PlayerController : MonoBehaviour
             rbDropped.AddForce(new Vector2(direction, 0.5f) * 3f, ForceMode2D.Impulse);
             rbDropped.AddTorque(Random.Range(-5f, 5f), ForceMode2D.Impulse);
         }
-        // InventorySystem.Instance.RemoveItem(itemToDrop);
-        Debug.Log($"Викинуто {itemToDrop.itemName} з інвентаря та у світ.");
+
+        // --- видаляємо з інвентаря ---
+        InventorySystem.Instance.RemoveItem(itemToDrop);
+
+        Debug.Log($"Викинуто {itemToDrop.itemName} з інвентаря у світ.");
     }
+
 
     public bool IsHolding(Item item)
     {

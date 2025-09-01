@@ -132,7 +132,6 @@ public class InventorySystem : MonoBehaviour
 
     public bool RemoveItems(Item item, int amount)
     {
-        // ... (ваш існуючий код RemoveItems) ...
         if (amount <= 0) return true; //
 
         int itemsRemoved = 0; //

@@ -29,8 +29,14 @@ public class InventoryUIManager : MonoBehaviour
 
         Time.timeScale = isInventoryOpen ? 0f : 1f;
 
-        // Показати курсор
+        // Показати / сховати курсор
         Cursor.lockState = isInventoryOpen ? CursorLockMode.None : CursorLockMode.Locked;
         Cursor.visible = isInventoryOpen;
+    }
+
+    // 👇 Оце додаємо
+    public bool IsInventoryOpen()
+    {
+        return isInventoryOpen;
     }
 }

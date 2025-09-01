@@ -35,8 +35,9 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        // StopDragging має обробляти менеджер перетягування
-        InventoryDragManager.Instance.StopDragging();
+        // Важливо: тепер ми не обробляємо логіку тут
+        // Просто делегуємо її InventoryDragManager
+        InventoryDragManager.Instance.OnEndDrag(eventData);
     }
 
     public void OnDrop(PointerEventData eventData)

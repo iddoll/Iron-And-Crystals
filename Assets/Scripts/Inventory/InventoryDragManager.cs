@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
+using UnityEngine.EventSystems;
 
 public class InventoryDragManager : MonoBehaviour
 {
@@ -7,7 +9,7 @@ public class InventoryDragManager : MonoBehaviour
 
     [SerializeField] private Canvas canvas;
     [SerializeField] private Image draggedIcon;
-    [SerializeField] private Text draggedIconText; // 🔧 Додано
+    [SerializeField] private Text draggedIconText;
 
     private Item draggedItem;
     private int draggedCount;
@@ -19,7 +21,7 @@ public class InventoryDragManager : MonoBehaviour
         else Destroy(gameObject);
 
         draggedIcon.gameObject.SetActive(false);
-        draggedIconText.gameObject.SetActive(false); // 🔧 Ховаємо на початку
+        draggedIconText.gameObject.SetActive(false);
     }
 
     public void StartDragging(InventorySlot slot, Item item, int count, Sprite iconSprite)
@@ -32,13 +34,42 @@ public class InventoryDragManager : MonoBehaviour
         draggedIcon.enabled = true;
         draggedIcon.gameObject.SetActive(true);
 
-        UpdateDraggedText(); // 🔧 Оновлюємо текст
+        UpdateDraggedText();
     }
 
     public void UpdateDraggedPosition(Vector2 position)
     {
         draggedIcon.transform.position = position;
-        draggedIconText.transform.position = position + new Vector2(20, -20); // 🔧 Зсув для тексту
+        draggedIconText.transform.position = position + new Vector2(20, -20);
+    }
+
+    public void OnEndDrag(PointerEventData eventData)
+    {
+        List<RaycastResult> results = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(eventData, results);
+        
+        bool isOverUI = results.Count > 0;
+
+        if (!isOverUI)
+        {
+            if (HasItem())
+            {
+                // 🔧 Отримуємо початковий слот, з якого почалося перетягування.
+                InventorySlot startSlot = GetSourceSlot();
+                Item itemToDrop = GetItem();
+            
+                if (startSlot != null && itemToDrop != null)
+                {
+                    // 🔧 Викликаємо метод викидання предмета.
+                    PlayerController.Instance.DropItemFromInventory(itemToDrop);
+                    
+                    // 🔧 Очищаємо початковий слот, щоб уникнути дублювання.
+                    startSlot.ClearSlot();
+                }
+            }
+        }
+        
+        StopDragging();
     }
 
     public void StopDragging()
@@ -46,7 +77,7 @@ public class InventoryDragManager : MonoBehaviour
         draggedItem = null;
         sourceSlot = null;
         draggedIcon.gameObject.SetActive(false);
-        draggedIconText.gameObject.SetActive(false); // 🔧 Ховаємо
+        draggedIconText.gameObject.SetActive(false);
     }
 
     public bool HasItem() => draggedItem != null;
