@@ -39,6 +39,9 @@ public class Rustborn : EnemyBase
     private static readonly int IsAttackingHash = Animator.StringToHash("isAttacking");
     private static readonly int IsMovingHash = Animator.StringToHash("isMooving");
 
+    // нова змінна
+    private bool isAttacking = false;
+
     protected override void Start()
     {
         base.Start();
@@ -65,31 +68,29 @@ public class Rustborn : EnemyBase
         {
             rb.linearVelocity = Vector2.zero;
 
-            if (Time.time - lastAttackTime >= attackCooldown)
+            if (!isAttacking && Time.time - lastAttackTime >= attackCooldown)
             {
                 TryAttack();
             }
         }
-        else if (playerInFollowRange)
+        else if (!isAttacking && playerInFollowRange)
         {
             float dirX = Mathf.Sign(player.position.x - transform.position.x);
             float targetSpeed = dirX * moveSpeed;
-            float speed = Mathf.Lerp(rb.linearVelocity.x, targetSpeed, 0.1f); // плавне наближення
+            float speed = Mathf.Lerp(rb.linearVelocity.x, targetSpeed, 0.1f);
             rb.linearVelocity = new Vector2(speed, rb.linearVelocity.y);
             HandleFacing(dirX);
         }
-        else
+        else if (!isAttacking)
         {
             Patrol();
         }
 
-        // тут завжди від швидкості визначаємо рух
         bool isMoving = Mathf.Abs(rb.linearVelocity.x) > 0.05f;
         animator.SetBool(IsMovingHash, isMoving);
 
         HandleRegeneration();
     }
-
 
     private void Patrol()
     {
@@ -116,9 +117,11 @@ public class Rustborn : EnemyBase
     private void TryAttack()
     {
         lastAttackTime = Time.time;
+        isAttacking = true;
         animator.SetBool(IsAttackingHash, true);
     }
 
+    // Animation Event
     public void AE_DealDamage()
     {
         if (attackZone != null && attackZone.playerInZone && attackZone.player != null)
@@ -127,9 +130,11 @@ public class Rustborn : EnemyBase
         }
     }
 
+    // Animation Event
     public void AE_AttackFinished()
     {
         animator.SetBool(IsAttackingHash, false);
+        isAttacking = false;
     }
 
     private void HandleFacing(float dirX)

@@ -6452,11 +6452,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 4033863291980000840, guid: e16c114de85a9924fa43debcc87c751c, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -2.645
+      value: 7.8
       objectReference: {fileID: 0}
     - target: {fileID: 4033863291980000840, guid: e16c114de85a9924fa43debcc87c751c, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.371
+      value: -0.39
       objectReference: {fileID: 0}
     - target: {fileID: 4033863291980000840, guid: e16c114de85a9924fa43debcc87c751c, type: 3}
       propertyPath: m_LocalPosition.z
@@ -6493,6 +6493,10 @@ PrefabInstance:
     - target: {fileID: 5917035800405084164, guid: e16c114de85a9924fa43debcc87c751c, type: 3}
       propertyPath: m_Name
       value: Nocktal (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5917035800405084164, guid: e16c114de85a9924fa43debcc87c751c, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -13678,6 +13682,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 594958868481419819, guid: bffcbc34d2fb3c040ba7d4bf100505e6, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.47
+      objectReference: {fileID: 0}
     - target: {fileID: 2499639759753155427, guid: bffcbc34d2fb3c040ba7d4bf100505e6, type: 3}
       propertyPath: followRadius
       value: 3
