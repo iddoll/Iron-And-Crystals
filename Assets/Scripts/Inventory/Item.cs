@@ -27,6 +27,8 @@ public class Item : ScriptableObject
     public bool isStackable;
     public int maxStack = 1;
     
+    public AnimatorOverrideController overrideController;
+    
     [Header("Combat Settings")]
     public float damage = 10f;
     public float attackCooldown = 1f;

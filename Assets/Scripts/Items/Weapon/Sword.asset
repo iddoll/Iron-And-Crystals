@@ -16,6 +16,7 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 5405c8d9fca815b4b959eb49cc45f6c6, type: 3}
   isStackable: 0
   maxStack: 1
+  overrideController: {fileID: 22100000, guid: 05923dcaf75b11d48b01d92acca5ac53, type: 2}
   damage: 10
   attackCooldown: 1
   worldPrefab: {fileID: 6774406438793495657, guid: ac84b28d01e0d314b8921f35dcebb774, type: 3}

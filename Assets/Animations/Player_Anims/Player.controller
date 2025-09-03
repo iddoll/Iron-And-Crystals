@@ -79,13 +79,13 @@ AnimatorStateMachine:
     m_Position: {x: 180, y: 520, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 4734112403901717079}
-    m_Position: {x: -380, y: 780, z: 0}
+    m_Position: {x: -580, y: 870, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -6749148991173041279}
-    m_Position: {x: -380, y: 620, z: 0}
+    m_Position: {x: -580, y: 660, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 6735803063905709869}
-    m_Position: {x: -380, y: 710, z: 0}
+    m_Position: {x: -550, y: 760, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -7210312587233493882}
     m_Position: {x: -100, y: -10, z: 0}
@@ -615,6 +615,37 @@ AnimatorStateTransition:
   m_InterruptionSource: 0
   m_OrderedInterruption: 1
   m_CanTransitionToSelf: 1
+--- !u!1101 &-1107525796529900416
+AnimatorStateTransition:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  m_Conditions:
+  - m_ConditionMode: 1
+    m_ConditionEvent: isMooving
+    m_EventTreshold: 0
+  - m_ConditionMode: 1
+    m_ConditionEvent: hasSword
+    m_EventTreshold: 0
+  - m_ConditionMode: 2
+    m_ConditionEvent: hasAxe
+    m_EventTreshold: 0
+  m_DstStateMachine: {fileID: 0}
+  m_DstState: {fileID: -728339847838521650}
+  m_Solo: 0
+  m_Mute: 0
+  m_IsExit: 0
+  serializedVersion: 3
+  m_TransitionDuration: 0
+  m_TransitionOffset: 0
+  m_ExitTime: 0.81481475
+  m_HasExitTime: 0
+  m_HasFixedDuration: 1
+  m_InterruptionSource: 0
+  m_OrderedInterruption: 1
+  m_CanTransitionToSelf: 1
 --- !u!1102 &-728339847838521650
 AnimatorState:
   serializedVersion: 6
@@ -628,6 +659,7 @@ AnimatorState:
   m_Transitions:
   - {fileID: 7301354591993019987}
   - {fileID: 7836593321013838670}
+  - {fileID: 4246340745062746436}
   m_StateMachineBehaviours: []
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
@@ -967,6 +999,7 @@ AnimatorState:
   m_Transitions:
   - {fileID: 3913034701242526396}
   - {fileID: 958651667796386453}
+  - {fileID: -1107525796529900416}
   m_StateMachineBehaviours: []
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
@@ -1312,6 +1345,37 @@ AnimatorStateTransition:
   m_TransitionDuration: 0
   m_TransitionOffset: 0
   m_ExitTime: 0.75409836
+  m_HasExitTime: 0
+  m_HasFixedDuration: 1
+  m_InterruptionSource: 0
+  m_OrderedInterruption: 1
+  m_CanTransitionToSelf: 1
+--- !u!1101 &4246340745062746436
+AnimatorStateTransition:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  m_Conditions:
+  - m_ConditionMode: 1
+    m_ConditionEvent: isMooving
+    m_EventTreshold: 0
+  - m_ConditionMode: 1
+    m_ConditionEvent: hasAxe
+    m_EventTreshold: 0
+  - m_ConditionMode: 2
+    m_ConditionEvent: hasSword
+    m_EventTreshold: 0
+  m_DstStateMachine: {fileID: 0}
+  m_DstState: {fileID: 1915493252457038774}
+  m_Solo: 0
+  m_Mute: 0
+  m_IsExit: 0
+  serializedVersion: 3
+  m_TransitionDuration: 0
+  m_TransitionOffset: 0
+  m_ExitTime: 0.81481475
   m_HasExitTime: 0
   m_HasFixedDuration: 1
   m_InterruptionSource: 0

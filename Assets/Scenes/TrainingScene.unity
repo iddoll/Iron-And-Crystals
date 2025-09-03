@@ -2708,6 +2708,7 @@ GameObject:
   - component: {fileID: 519420029}
   - component: {fileID: 519420030}
   - component: {fileID: 519420033}
+  - component: {fileID: 519420034}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -2867,6 +2868,18 @@ MonoBehaviour:
   m_CameraActivatedEvent:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &519420034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 519420028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71b06978d94dca44e81b6eed8d2a6ede, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &583683867
 GameObject:
   m_ObjectHideFlags: 0
@@ -9259,6 +9272,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1469760419}
   - component: {fileID: 1469760418}
+  - component: {fileID: 1469760420}
   m_Layer: 0
   m_Name: Virtual Camera
   m_TagString: Untagged
@@ -9321,6 +9335,29 @@ Transform:
   - {fileID: 1056499697}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1469760420
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1469760417}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00b2d199b96b516448144ab30fb26aed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_ApplyAfter: 2
+  m_ChannelMask: 1
+  m_Gain: 0.1
+  m_Use2DDistance: 0
+  m_UseCameraSpace: 1
+  m_ReactionSettings:
+    m_SecondaryNoise: {fileID: 0}
+    m_AmplitudeGain: 1
+    m_FrequencyGain: 1
+    m_Duration: 1
+    m_NoiseOffsets: {x: 0, y: 0, z: 0}
 --- !u!1 &1492379156
 GameObject:
   m_ObjectHideFlags: 0
@@ -11144,6 +11181,7 @@ GameObject:
   - component: {fileID: 1516404464}
   - component: {fileID: 1516404463}
   - component: {fileID: 1516404468}
+  - component: {fileID: 1516404469}
   m_Layer: 3
   m_Name: Player
   m_TagString: Player
@@ -11180,6 +11218,7 @@ MonoBehaviour:
   firePoint: {fileID: 234892505}
   arrowPrefab: {fileID: 6332015240612109127, guid: 159d7688f8ea9cb44ad92f734162a9a2, type: 3}
   bowCooldown: 0.5
+  impulseSource: {fileID: 1516404469}
 --- !u!95 &1516404464
 Animator:
   serializedVersion: 7
@@ -11190,7 +11229,7 @@ Animator:
   m_GameObject: {fileID: 1516404462}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 4f6e76c875ee1364cb88be2d2542d641, type: 2}
+  m_Controller: {fileID: 9100000, guid: b6ddbab2f1fa64142bec93e0280376be, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -11343,6 +11382,59 @@ CapsuleCollider2D:
   m_Offset: {x: 0.01400128, y: -0.12017715}
   m_Size: {x: 0.47262043, y: 0.7596457}
   m_Direction: 0
+--- !u!114 &1516404469
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1516404462}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 180ecf9b41d478f468eb3e9083753217, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_ImpulseDefinition:
+    m_ImpulseChannel: 1
+    m_ImpulseShape: 2
+    m_CustomImpulseShape:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    m_ImpulseDuration: 0.2
+    m_ImpulseType: 0
+    m_DissipationRate: 0.25
+    m_RawSignal: {fileID: 0}
+    m_AmplitudeGain: 1
+    m_FrequencyGain: 1
+    m_RepeatMode: 0
+    m_Randomize: 1
+    m_TimeEnvelope:
+      m_AttackShape:
+        serializedVersion: 2
+        m_Curve: []
+        m_PreInfinity: 2
+        m_PostInfinity: 2
+        m_RotationOrder: 4
+      m_DecayShape:
+        serializedVersion: 2
+        m_Curve: []
+        m_PreInfinity: 2
+        m_PostInfinity: 2
+        m_RotationOrder: 4
+      m_AttackTime: 0
+      m_SustainTime: 0.2
+      m_DecayTime: 0.7
+      m_ScaleWithImpact: 1
+      m_HoldForever: 0
+    m_ImpactRadius: 100
+    m_DirectionMode: 0
+    m_DissipationMode: 2
+    m_DissipationDistance: 100
+    m_PropagationSpeed: 343
+  m_DefaultVelocity: {x: 0, y: -1, z: 0}
 --- !u!1 &1543731710
 GameObject:
   m_ObjectHideFlags: 0

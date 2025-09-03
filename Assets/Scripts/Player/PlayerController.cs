@@ -35,6 +35,7 @@ public class PlayerController : MonoBehaviour
 
     private bool isAttacking = false;
     private bool canAttack = true;
+    private bool isShooting = false;
     
     [Header("Attack Zones")]
     public AttackZone swordAttackZone;
@@ -46,8 +47,12 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private GameObject arrowPrefab;
     [SerializeField] private float bowCooldown = 0.5f;
 
-    private bool isShooting;
+   
     private float lastShotTime;
+    
+    private Item pendingItem; // зберігає предмет, який чекає на еквіп
+    
+    public Cinemachine.CinemachineImpulseSource impulseSource;
 
     private void Awake()
     {
@@ -67,6 +72,7 @@ public class PlayerController : MonoBehaviour
             healthUI.InitHearts(20);
             healthUI.UpdateHearts((int)currentHealth, (int)maxHealth);
         }
+        impulseSource = GetComponent<Cinemachine.CinemachineImpulseSource>();
     }
 
     private void Update()
@@ -174,7 +180,6 @@ public class PlayerController : MonoBehaviour
 
     private IEnumerator ResetMiningAnimation()
     {
-        animator.SetBool("isMining", true);
         float timer = 0f;
         while (!animator.GetCurrentAnimatorStateInfo(0).IsName("Player_Ore_Mining_Anim") && timer < 1.0f)
         {
@@ -195,7 +200,14 @@ public class PlayerController : MonoBehaviour
 
         animator.SetBool("isMining", false);
         isMining = false;
+
+        if (pendingItem != null)
+        {
+            DoEquip(pendingItem);
+            pendingItem = null;
+        }
     }
+
 
     // Корутина для меча/сокири
     private IEnumerator ResetAttackAnimation()
@@ -265,11 +277,16 @@ public class PlayerController : MonoBehaviour
         if (currentAttackZone != null)
         {
             currentAttackZone.Deactivate();
-            Debug.Log("AttackEnd → зона атаки деактивована");
         }
 
         animator.SetBool("isAttacking", false);
         isAttacking = false;
+
+        if (pendingItem != null)
+        {
+            DoEquip(pendingItem);
+            pendingItem = null;
+        }
     }
     private IEnumerator AttackCooldownCoroutine(float cooldownTime)
     {
@@ -332,14 +349,21 @@ public class PlayerController : MonoBehaviour
 
     public void EquipItem(Item item)
     {
-        Debug.Log($"[PlayerController] EquipItem викликано для {item?.name ?? "null Item"}");
+        if (isAttacking || isMining)
+        {
+            // Якщо йде анімація → запам’ятовуємо
+            pendingItem = item;
+            return;
+        }
 
+        DoEquip(item);
+        
         if (heldObject != null)
         {
             UnequipItem();
         }
 
-        if (item != null && item.equippedPrefab != null )
+        if (item != null && item.equippedPrefab != null)
         {
             currentEquippedItem = item;
             heldObject = Instantiate(item.equippedPrefab, holdPoint.position, Quaternion.identity, holdPoint);
@@ -354,26 +378,54 @@ public class PlayerController : MonoBehaviour
                 rbHeld.isKinematic = true;
             }
 
-            // --- ось тут нове ---
-            animator.SetBool("hasLance", item.itemType == ItemType.Lance);
-            animator.SetBool("hasSword", item.itemType == ItemType.Sword);
-            animator.SetBool("hasAxe",   item.itemType == ItemType.Axe);
-            
-            Debug.Log("Спроба екіпірувати: " + item.name);
+            // 🔧 Підміняємо анімації
+            if (item.overrideController != null)
+            {
+                animator.runtimeAnimatorController = item.overrideController;
+            }
         }
         else
         {
             currentEquippedItem = null;
             SetCurrentTool("None");
-
-            animator.SetBool("hasLance", false);
-            animator.SetBool("hasSword", false);
-            animator.SetBool("hasAxe",   false);
-            
-            Debug.Log("Скинуто поточний інструмент.");
+            animator.runtimeAnimatorController = null; // можна поставити базовий
         }
     }
 
+    private void DoEquip(Item item)
+    {
+        if (heldObject != null)
+        {
+            UnequipItem();
+        }
+
+        if (item != null && item.equippedPrefab != null)
+        {
+            currentEquippedItem = item;
+            heldObject = Instantiate(item.equippedPrefab, holdPoint.position, Quaternion.identity, holdPoint);
+            heldObject.transform.localPosition = Vector3.zero;
+            heldObject.transform.localRotation = Quaternion.Euler(0, 0, -90);
+            SetCurrentTool(item.name);
+
+            Rigidbody2D rbHeld = heldObject.GetComponent<Rigidbody2D>();
+            if (rbHeld != null)
+            {
+                rbHeld.simulated = false;
+                rbHeld.isKinematic = true;
+            }
+
+            if (item.overrideController != null)
+            {
+                animator.runtimeAnimatorController = item.overrideController;
+            }
+        }
+        else
+        {
+            currentEquippedItem = null;
+            SetCurrentTool("None");
+            animator.runtimeAnimatorController = null;
+        }
+    }
 
     public void UnequipItem()
     {
@@ -446,6 +498,11 @@ public class PlayerController : MonoBehaviour
 
         if (healthUI != null)
             healthUI.UpdateHearts((int)currentHealth, (int)maxHealth);
+
+        if (impulseSource != null)
+        {
+            impulseSource.GenerateImpulse(); // Генеруємо імпульс, який трясе камеру
+        }
 
         canTakeDamage = false;
         StartCoroutine(DamageCooldownCoroutine());
