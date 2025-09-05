@@ -106,14 +106,11 @@ public class QuiqSlot : MonoBehaviour
 
     public void OnSlotChanged(InventorySlot changedSlot)
     {
-        // Цей метод викликається, коли слот інвентарю змінюється.
-        // Якщо змінений слот є активним слотом швидкого доступу,
-        // потрібно повідомити InventorySystem про можливу зміну екіпірованого предмета.
+        // Якщо змінений слот є активним, оновлюємо екіпірування через InventorySystem
         if (IsActiveSlot(changedSlot))
         {
-            // Замість weaponHold.Equip/Unequip, викликаємо InventorySystem.SetActiveSlot
-            // щоб він оновив екіпіровку через PlayerController.
-            InventorySystem.Instance.SetActiveSlot(currentQuickIndex); // <-- ЗМІНА ТУТ
+            InventorySystem.Instance.UpdateActiveItem();
         }
     }
+
 }

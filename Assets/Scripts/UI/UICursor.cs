@@ -13,6 +13,7 @@ public class UICursor : MonoBehaviour
     private Camera mainCam;
 
     private bool isClicking = false; // прапорець стану
+    private bool isCustomEnabled = true;
 
     private void Start()
     {
@@ -20,11 +21,13 @@ public class UICursor : MonoBehaviour
         mainCam = Camera.main;
 
         SetCursor(defaultCursor);
-        Cursor.visible = false; // ховаємо системний курсор
+        EnableCustomCursor(); // на старті вмикаємо кастомний
     }
 
     private void Update()
     {
+        if (!isCustomEnabled) return; // якщо інвентар відкритий — курсор не оновлюється
+
         // рухаємо UI-курсор за мишею
         rectTransform.position = Input.mousePosition;
 
@@ -40,7 +43,6 @@ public class UICursor : MonoBehaviour
             UpdateCursorState();
         }
 
-        // якщо не клікаємо — курсор реагує на наведення
         if (!isClicking)
         {
             UpdateCursorState();
@@ -61,10 +63,24 @@ public class UICursor : MonoBehaviour
         SetCursor(defaultCursor);
     }
 
-
     public void SetCursor(Sprite newCursor)
     {
         if (cursorImage != null && newCursor != null)
             cursorImage.sprite = newCursor;
+    }
+
+    // --- Методи для перемикання ---
+    public void EnableCustomCursor()
+    {
+        isCustomEnabled = true;
+        cursorImage.enabled = true;
+        Cursor.visible = false;
+    }
+
+    public void DisableCustomCursor()
+    {
+        isCustomEnabled = false;
+        cursorImage.enabled = false;
+        Cursor.visible = true;
     }
 }

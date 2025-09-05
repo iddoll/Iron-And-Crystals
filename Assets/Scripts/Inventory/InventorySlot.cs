@@ -10,6 +10,7 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
     private Item currentItem;
     private int count;
+    public int slotIndex; // Додати у InventorySlot
 
     // Прапорець для відстеження, чи був запущений Drag через Ctrl+Click
     private bool isSplittingDrag = false; 
@@ -50,41 +51,51 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         Item incomingItem = InventoryDragManager.Instance.GetItem();
         int incomingCount = InventoryDragManager.Instance.GetCount();
 
-        // Якщо обидва предмети стекові, однакові і є вільне місце в поточному слоті
+        // Якщо ми перетягуємо предмет, який зараз активний у InventorySystem
+        if (InventorySystem.Instance.GetActiveSlotIndex() == fromSlot.slotIndex)
+        {
+            PlayerController.Instance.UnequipItem();
+            InventorySystem.Instance.SetCurrentTool("None");
+        }
+
+        // Логіка стекування
         if (!IsEmpty() && CanStack(incomingItem))
         {
             int spaceLeft = currentItem.maxStack - count;
-
             if (spaceLeft > 0)
             {
                 int amountToStack = Mathf.Min(spaceLeft, incomingCount);
                 count += amountToStack;
                 RefreshUI();
 
-                // Забираємо з джерельного слоту
                 fromSlot.ReduceStack(amountToStack);
 
-                // Якщо ще залишилось щось у руці — залишити активним drag
                 if (incomingCount > amountToStack)
-                {
                     InventoryDragManager.Instance.StartDragging(fromSlot, incomingItem, incomingCount - amountToStack, incomingItem.icon);
-                }
                 else
-                {
                     InventoryDragManager.Instance.StopDragging();
-                }
 
                 return;
             }
         }
 
-        // Інакше — просто обмін місцями
+        // Обмін предметами
         Item tempItem = currentItem;
         int tempCount = count;
 
         AddItem(incomingItem, incomingCount);
         fromSlot.AddItem(tempItem, tempCount);
+
+        // Якщо новий слот став активним, можна екіпірувати
+        if (InventorySystem.Instance.GetActiveSlotIndex() == slotIndex)
+        {
+            Item item = GetItem();
+            if (item != null && item.equippedPrefab != null)
+                PlayerController.Instance.EquipItem(item);
+        }
     }
+
+
 
     public void ReduceStack(int amount)
     {
@@ -104,12 +115,26 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         currentItem = item;
         count = amount;
         RefreshUI();
-        if (QuiqSlot.Instance != null) // Перевірка на null, щоб уникнути помилок, якщо QuiqSlot ще не ініціалізований
-        {
-            QuiqSlot.Instance.OnSlotChanged(this);
-        }
+
+        QuiqSlot.Instance?.OnSlotChanged(this);
+
+        // Якщо цей слот активний, одразу екіпірувати предмет
+        if (InventorySystem.Instance.GetActiveSlotIndex() == slotIndex)
+            InventorySystem.Instance.UpdateActiveItem();
     }
-    
+
+    public void ClearSlot()
+    {
+        currentItem = null;
+        count = 0;
+        RefreshUI();
+
+        QuiqSlot.Instance?.OnSlotChanged(this);
+
+        // Якщо цей слот активний, оновлюємо екіпірування
+        if (InventorySystem.Instance.GetActiveSlotIndex() == slotIndex)
+            InventorySystem.Instance.UpdateActiveItem();
+    }
     public bool IsEmpty() => currentItem == null;
 
     public void AddItem(Item item)
@@ -230,18 +255,7 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
     public bool CanStack(Item item) =>
         !IsEmpty() && currentItem == item && currentItem.isStackable && count < currentItem.maxStack;
-
-    public void ClearSlot()
-    {
-        currentItem = null;
-        count = 0;
-        RefreshUI();
-        if (QuiqSlot.Instance != null)
-        {
-            QuiqSlot.Instance.OnSlotChanged(this);
-        }
-    }
-
+    
     public Item GetItem() => currentItem;
     public int GetCurrentCount() => count;
 }

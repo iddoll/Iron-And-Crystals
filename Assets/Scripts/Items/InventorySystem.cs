@@ -3,19 +3,49 @@ using UnityEngine;
 public class InventorySystem : MonoBehaviour
 {
     public static InventorySystem Instance;
+
     [SerializeField] private InventorySlot[] slots;
-    private int activeSlotIndex = -1;
+    private int activeSlotIndex = 0;
 
     private void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
+
+        for (int i = 0; i < slots.Length; i++)
+            slots[i].slotIndex = i;
     }
 
+    public int GetActiveSlotIndex() => activeSlotIndex;
+
+    public InventorySlot GetActiveSlot() => (activeSlotIndex >= 0 && activeSlotIndex < slots.Length) ? slots[activeSlotIndex] : null;
+
+    /// <summary>Встановлює активний слот. Якщо слот не змінюється, просто оновлює екіпірування.</summary>
+    public void SetActiveSlot(int index)
+    {
+        if (index < 0 || index >= slots.Length) return;
+
+        if (activeSlotIndex != index)
+            activeSlotIndex = index;
+
+        UpdateActiveItem();
+    }
+
+    /// <summary>Оновлює екіпірування гравця відповідно до предмета в активному слоті.</summary>
+    public void UpdateActiveItem()
+    {
+        InventorySlot slot = GetActiveSlot();
+        Item item = slot?.GetItem();
+
+        if (item != null && item.equippedPrefab != null)
+            PlayerController.Instance.EquipItem(item);
+        else
+            PlayerController.Instance.UnequipItem();
+    }
+
+    /// <summary>Додає предмет в інвентар або в стек, якщо він стековий.</summary>
     public bool AddItem(Item item)
     {
-        Debug.Log($"[InventorySystem] AddItem викликано для {item.itemName}"); // Додано лог для діагностики
-
         if (item.isStackable)
         {
             foreach (var slot in slots)
@@ -23,32 +53,25 @@ public class InventorySystem : MonoBehaviour
                 if (slot.CanStack(item) && slot.GetCurrentCount() < item.maxStack)
                 {
                     slot.AddOne();
-                    Debug.Log($"Предмет {item.itemName} додано до стаку. Кількість: {slot.GetCurrentCount()}");
+                    if (slot == GetActiveSlot())
+                        UpdateActiveItem();
                     return true;
                 }
             }
         }
 
-        // Шукаємо порожній слот
-        for (int i = 0; i < slots.Length; i++) // Перебираємо всі слоти
+        for (int i = 0; i < slots.Length; i++)
         {
             if (slots[i].IsEmpty())
             {
-                slots[i].AddItem(item); // Додаємо предмет в слот
-                Debug.Log($"Предмет {item.itemName} додано в слот {i}."); // Додано лог
+                slots[i].AddItem(item);
 
-                // Логіка активації слота та екіпіровки
-                // Якщо це перший предмет в інвентарі, або якщо додається предмет, який може бути екіпірований,
-                // І це наш перший екіпірований предмет, або слот, куди додали, стає активним
-                if (activeSlotIndex == -1) // Якщо інвентар був порожній і це перший доданий предмет
+                // Якщо доданий предмет у активний слот — оновлюємо анімацію
+                if (i == activeSlotIndex || GetActiveSlot().IsEmpty())
                 {
-                    SetActiveSlot(i); // Активація першого слота
+                    SetActiveSlot(i); // робимо слот активним якщо активний порожній
                 }
-                else if (activeSlotIndex == i && item.equippedPrefab != null) // Якщо предмет додано в активний слот, і він може бути екіпірований
-                {
-                    SetActiveSlot(i); // Переактивовуємо слот, щоб екіпірувати новий предмет
-                }
-                
+
                 return true;
             }
         }
@@ -56,135 +79,88 @@ public class InventorySystem : MonoBehaviour
         Debug.Log("Інвентар повний!");
         return false;
     }
-    
-    public void SetActiveSlot(int index)
+
+    /// <summary>Видаляє предмет повністю або зі стека.</summary>
+    public void RemoveItem(Item item)
     {
-        Debug.Log($"[InventorySystem] SetActiveSlot викликано для індексу {index}. Поточний activeSlotIndex: {activeSlotIndex}"); // Додано лог
-        
-        if (index >= 0 && index < slots.Length)
+        foreach (var slot in slots)
         {
-            // Якщо ми перемикаємося на той самий слот і він вже активний, нічого не робимо
-            // Ця перевірка важлива, щоб уникнути зайвих Unequip/Equip
-            if (activeSlotIndex == index && slots[activeSlotIndex].GetItem() != null && PlayerController.Instance.GetCurrentTool() == slots[activeSlotIndex].GetItem().name)
+            if (slot.GetItem() == item)
             {
-                Debug.Log($"[InventorySystem] Слот {index} вже активний з тим самим предметом. Нічого не робимо.");
+                if (item.isStackable && slot.GetCurrentCount() > 1)
+                {
+                    slot.RemoveOne();
+                }
+                else
+                {
+                    slot.ClearSlot();
+                }
+
+                // Якщо видалили предмет з активного слоту — оновлюємо екіпірування
+                if (slot == GetActiveSlot())
+                    UpdateActiveItem();
+
                 return;
             }
-
-            // Де-екіпіруємо поточний предмет, якщо він є і він був у активному слоті
-            if (activeSlotIndex != -1)
-            {
-                Item prevItem = slots[activeSlotIndex].GetItem();
-                if (prevItem != null && prevItem.equippedPrefab != null)
-                {
-                    PlayerController.Instance.UnequipItem();
-                }
-            }
-
-            activeSlotIndex = index;
-            Item item = slots[index].GetItem();
-
-            if (item != null && item.equippedPrefab != null)
-            {
-                PlayerController.Instance.EquipItem(item);
-                Debug.Log("Слот " + index + " активовано. Предмет: " + item.itemName);
-            }
-            else
-            {
-                // Якщо предмет не можна екіпірувати (наприклад, кристал),
-                // просто де-екіпіруємо поточний і не екіпіруємо нічого нового.
-                PlayerController.Instance.UnequipItem();
-                PlayerController.Instance.SetCurrentTool("None");
-                Debug.Log("Слот " + index + " активовано. Предмет не екіпіровано (немає equippedPrefab).");
-            }
         }
+        Debug.LogWarning($"Предмет {item.itemName} не знайдено в інвентарі для видалення.");
     }
 
-   public void RemoveItem(Item item)
-    {
-        // ... (ваш існуючий код RemoveItem) ...
-        foreach (var slot in slots) //
-        {
-            if (slot.GetItem() == item) //
-            {
-                if (item.isStackable && slot.GetCurrentCount() > 1) //
-                {
-                    slot.RemoveOne(); //
-                    Debug.Log($"Один {item.itemName} видалено зі стаку."); //
-                    return; //
-                }
-                else //
-                {
-                    slot.ClearSlot(); //
-                    Debug.Log($"{item.itemName} повністю видалено зі слота."); //
-
-                    if (slot == slots[activeSlotIndex]) //
-                    {
-                        PlayerController.Instance.UnequipItem(); //
-                        PlayerController.Instance.SetCurrentTool("None"); //
-                    }
-                    return; //
-                }
-            }
-        }
-        Debug.Log($"Предмет {item.itemName} не знайдено в інвентарі для видалення."); //
-    }
-
+    /// <summary>Видаляє задану кількість предметів зі стеків.</summary>
     public bool RemoveItems(Item item, int amount)
     {
-        if (amount <= 0) return true; //
+        if (amount <= 0) return true;
 
-        int itemsRemoved = 0; //
-        for (int i = 0; i < slots.Length; i++) //
+        int removed = 0;
+        foreach (var slot in slots)
         {
-            var slot = slots[i]; //
-            if (slot.GetItem() == item) //
+            if (slot.GetItem() == item)
             {
-                int itemsToTake = Mathf.Min(amount - itemsRemoved, slot.GetCurrentCount()); //
-                for (int j = 0; j < itemsToTake; j++) //
-                {
-                    slot.RemoveOne(); //
-                    itemsRemoved++; //
-                }
+                int toRemove = Mathf.Min(amount - removed, slot.GetCurrentCount());
+                for (int i = 0; i < toRemove; i++)
+                    slot.RemoveOne();
+                removed += toRemove;
 
-                if (slot.IsEmpty() && i == activeSlotIndex) //
-                {
-                    PlayerController.Instance.UnequipItem(); //
-                    PlayerController.Instance.SetCurrentTool("None"); //
-                }
+                if (slot == GetActiveSlot())
+                    UpdateActiveItem();
 
-                if (itemsRemoved >= amount) //
-                {
-                    Debug.Log($"Видалено {amount} {item.itemName} з інвентарю."); //
-                    return true; //
-                }
+                if (removed >= amount)
+                    return true;
             }
         }
 
-        Debug.LogWarning($"Не вдалося видалити {amount} {item.itemName}. Знайдено лише {itemsRemoved}."); //
-        return false; //
+        Debug.LogWarning($"Не вдалося видалити {amount} {item.itemName}. Видалено лише {removed}.");
+        return false;
     }
 
+    /// <summary>Повертає кількість предметів у всіх слотах.</summary>
     public int GetItemCount(Item item)
     {
-        // ... (ваш існуючий код GetItemCount) ...
-        int count = 0; //
-        foreach (var slot in slots) //
-        {
-            if (slot.GetItem() == item) //
-            {
-                count += slot.GetCurrentCount(); //
-            }
-        }
-        return count; //
+        int count = 0;
+        foreach (var slot in slots)
+            if (slot.GetItem() == item)
+                count += slot.GetCurrentCount();
+        return count;
     }
 
-    public InventorySlot GetActiveSlot()
+    /// <summary>Встановлює предмет активним за іменем.</summary>
+    public void SetCurrentTool(string toolName)
     {
-        if (activeSlotIndex != -1 && activeSlotIndex < slots.Length)
+        if (toolName == "None")
         {
-            return slots[activeSlotIndex];
+            PlayerController.Instance.UnequipItem();
+            return;
         }
-        return null;
+
+        for (int i = 0; i < slots.Length; i++)
+        {
+            if (!slots[i].IsEmpty() && slots[i].GetItem().name == toolName)
+            {
+                SetActiveSlot(i);
+                return;
+            }
+        }
+
+        Debug.LogWarning($"SetCurrentTool: предмет з іменем {toolName} не знайдено в слотах.");
     }
 }

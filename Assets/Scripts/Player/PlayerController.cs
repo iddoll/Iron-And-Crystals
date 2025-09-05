@@ -6,6 +6,9 @@ public class PlayerController : MonoBehaviour
 {
     public static PlayerController Instance;
     
+    [Header("Animation Controllers")]
+    public RuntimeAnimatorController BaseAnimatorController; // сюди кидаєш твій Player_Base_Controller
+
     [Header("Player Stats")]
     public float maxHealth = 100f;
     private float currentHealth;
@@ -203,7 +206,8 @@ public class PlayerController : MonoBehaviour
 
         if (pendingItem != null)
         {
-            DoEquip(pendingItem);
+            EquipItem(pendingItem);
+
             pendingItem = null;
         }
     }
@@ -284,7 +288,7 @@ public class PlayerController : MonoBehaviour
 
         if (pendingItem != null)
         {
-            DoEquip(pendingItem);
+            EquipItem(pendingItem);
             pendingItem = null;
         }
     }
@@ -356,21 +360,20 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        DoEquip(item);
-        
-        if (heldObject != null)
-        {
-            UnequipItem();
-        }
+        // Спершу деекіпір
+        UnequipItem();
 
         if (item != null && item.equippedPrefab != null)
         {
             currentEquippedItem = item;
+
+            // Створюємо предмет у руці
             heldObject = Instantiate(item.equippedPrefab, holdPoint.position, Quaternion.identity, holdPoint);
             heldObject.transform.localPosition = Vector3.zero;
             heldObject.transform.localRotation = Quaternion.Euler(0, 0, -90);
             SetCurrentTool(item.name);
 
+            // Вимикаємо фізику
             Rigidbody2D rbHeld = heldObject.GetComponent<Rigidbody2D>();
             if (rbHeld != null)
             {
@@ -378,54 +381,19 @@ public class PlayerController : MonoBehaviour
                 rbHeld.isKinematic = true;
             }
 
-            // 🔧 Підміняємо анімації
-            if (item.overrideController != null)
-            {
-                animator.runtimeAnimatorController = item.overrideController;
-            }
+            // Підміняємо аніматор
+            animator.runtimeAnimatorController = item.overrideController != null
+                ? item.overrideController
+                : BaseAnimatorController;
         }
         else
         {
             currentEquippedItem = null;
             SetCurrentTool("None");
-            animator.runtimeAnimatorController = null; // можна поставити базовий
+            animator.runtimeAnimatorController = BaseAnimatorController;
         }
     }
 
-    private void DoEquip(Item item)
-    {
-        if (heldObject != null)
-        {
-            UnequipItem();
-        }
-
-        if (item != null && item.equippedPrefab != null)
-        {
-            currentEquippedItem = item;
-            heldObject = Instantiate(item.equippedPrefab, holdPoint.position, Quaternion.identity, holdPoint);
-            heldObject.transform.localPosition = Vector3.zero;
-            heldObject.transform.localRotation = Quaternion.Euler(0, 0, -90);
-            SetCurrentTool(item.name);
-
-            Rigidbody2D rbHeld = heldObject.GetComponent<Rigidbody2D>();
-            if (rbHeld != null)
-            {
-                rbHeld.simulated = false;
-                rbHeld.isKinematic = true;
-            }
-
-            if (item.overrideController != null)
-            {
-                animator.runtimeAnimatorController = item.overrideController;
-            }
-        }
-        else
-        {
-            currentEquippedItem = null;
-            SetCurrentTool("None");
-            animator.runtimeAnimatorController = null;
-        }
-    }
 
     public void UnequipItem()
     {
@@ -433,28 +401,29 @@ public class PlayerController : MonoBehaviour
         {
             Destroy(heldObject);
             heldObject = null;
-            SetCurrentTool("None");
-            currentEquippedItem = null;
-            Debug.Log("Предмет успішно де-екіпіровано.");
         }
+
+        SetCurrentTool("None");
+        currentEquippedItem = null;
+
+        // ⬇️ Повертаємо базовий аніматор
+        if (animator != null && BaseAnimatorController != null)
+        {
+            animator.runtimeAnimatorController = BaseAnimatorController;
+        }
+
+        Debug.Log("Предмет успішно де-екіпіровано.");
     }
+
+
 
     public void DropItemFromInventory(Item itemToDrop)
     {
         if (itemToDrop == null || itemToDrop.worldPrefab == null)
         {
-            Debug.LogWarning($"Неможливо викинути {itemToDrop?.name ?? "null"}: предмет null або немає worldPrefab.");
+            Debug.LogWarning($"Неможливо викинути {itemToDrop?.name ?? "null"}");
             return;
         }
-
-        // --- якщо цей предмет у активному слоті ---
-        if (InventorySystem.Instance.GetActiveSlot() != null &&
-            InventorySystem.Instance.GetActiveSlot().GetItem() == itemToDrop)
-        {
-            UnequipItem(); // видаляє з holdPoint + скидає tool
-            Debug.Log($"[PlayerController] {itemToDrop.itemName} був у активному слоті → де-екіпіровано при дропі.");
-        }
-
 
         // --- спавнимо предмет у світі ---
         Vector3 dropPosition = transform.position + (Vector3)(transform.localScale.x > 0 ? Vector2.right : Vector2.left) * 0.5f;
@@ -478,8 +447,9 @@ public class PlayerController : MonoBehaviour
         // --- видаляємо з інвентаря ---
         InventorySystem.Instance.RemoveItem(itemToDrop);
 
-        Debug.Log($"Викинуто {itemToDrop.itemName} з інвентаря у світ.");
+        Debug.Log($"Викинуто {itemToDrop.itemName} у світ.");
     }
+
 
 
     public bool IsHolding(Item item)

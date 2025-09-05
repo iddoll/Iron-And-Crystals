@@ -12,6 +12,10 @@ public class InventoryUIManager : MonoBehaviour
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
+
+        // Сховати системний курсор на старті
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.None;
     }
 
     void Update()
@@ -27,14 +31,10 @@ public class InventoryUIManager : MonoBehaviour
         isInventoryOpen = !isInventoryOpen;
         inventoryUI.SetActive(isInventoryOpen);
 
+        // Ставимо гру на паузу
         Time.timeScale = isInventoryOpen ? 0f : 1f;
-
-        // Показати / сховати курсор
-        Cursor.lockState = isInventoryOpen ? CursorLockMode.None : CursorLockMode.Locked;
-        Cursor.visible = isInventoryOpen;
     }
 
-    // 👇 Оце додаємо
     public bool IsInventoryOpen()
     {
         return isInventoryOpen;
