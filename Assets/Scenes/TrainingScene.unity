@@ -13098,6 +13098,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1672364719060791388, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
+      propertyPath: unarmedAttackLeft
+      value: 
+      objectReference: {fileID: 7400000, guid: df0df10df872f714baff3aa1a7720ad0, type: 2}
+    - target: {fileID: 1672364719060791388, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
+      propertyPath: unarmedAttackRight
+      value: 
+      objectReference: {fileID: 7400000, guid: dd155b63bb61959439168d4129961c49, type: 2}
+    - target: {fileID: 1672364719060791388, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
+      propertyPath: BaseAnimatorController
+      value: 
+      objectReference: {fileID: 9100000, guid: b6ddbab2f1fa64142bec93e0280376be, type: 2}
     - target: {fileID: 3897208731216053639, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
       propertyPath: m_LocalPosition.x
       value: 2.03

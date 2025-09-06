@@ -50,7 +50,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private GameObject arrowPrefab;
     [SerializeField] private float bowCooldown = 0.5f;
 
-   
+    [Header("Unarmed Attacks")]
+    [SerializeField] private AnimationClip unarmedAttackLeft;
+    [SerializeField] private AnimationClip unarmedAttackRight;
+
     private float lastShotTime;
     
     private Item pendingItem; // зберігає предмет, який чекає на еквіп
@@ -149,6 +152,23 @@ public class PlayerController : MonoBehaviour
                     }
                 }
             }
+            else
+            {
+                // 🥊 атака без зброї
+                isAttacking = true;
+                canAttack = false;
+
+                if (Random.value > 0.5f)
+                {
+                    animator.SetBool("PunchLeft", true);
+                }
+                else
+                {
+                    animator.SetBool("PunchRight", true);
+                }
+
+                StartCoroutine(AttackCooldownCoroutine(0.5f));
+            }
         }
     }
 
@@ -163,7 +183,16 @@ public class PlayerController : MonoBehaviour
         return false;
     }
 
-    
+    public void EndUnarmedAttack()
+    {
+        isAttacking = false;
+        canAttack = true;
+
+        animator.SetBool("PunchLeft", false);
+        animator.SetBool("PunchRight", false);
+    }
+
+
     // Корутина для списа
     private IEnumerator ResetSpearAttackAnimation()
     {

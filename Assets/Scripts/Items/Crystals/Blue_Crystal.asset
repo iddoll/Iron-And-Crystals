@@ -16,12 +16,12 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: aa0968a2950582d44a8fce05146bf659, type: 3}
   isStackable: 1
   maxStack: 10
-  overrideController: {fileID: 22100000, guid: 3e0bbcaed92cb7e43afbfa44020ec07e, type: 2}
+  overrideController: {fileID: 0}
   damage: 1
   attackCooldown: 1
   worldPrefab: {fileID: 7081841069010117115, guid: 8dd40174cc679ea499f447d3fccace25, type: 3}
   equippedPrefab: {fileID: 7081841069010117115, guid: 8dd40174cc679ea499f447d3fccace25, type: 3}
-  itemType: 5
+  itemType: 7
   canBeEquipped: 0
   equippedLocalPosition: {x: 0, y: 0, z: 0}
   equippedLocalRotation: {x: 0, y: 0, z: 0, w: 1}
