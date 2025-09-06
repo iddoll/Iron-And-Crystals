@@ -504,6 +504,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 81c901f1be84043489b9984e33815c6f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  BaseAnimatorController: {fileID: 9100000, guid: 4f6e76c875ee1364cb88be2d2542d641, type: 2}
   maxHealth: 100
   moveSpeed: 2
   jumpForce: 5

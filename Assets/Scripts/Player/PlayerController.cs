@@ -127,7 +127,6 @@ public class PlayerController : MonoBehaviour
                     isAttacking = true;
                     canAttack = false;
                     animator.SetBool("isAttacking", true);
-                    StartCoroutine(ResetAttackAnimation());
                     StartCoroutine(AttackCooldownCoroutine(currentEquippedItem.attackCooldown));
                 }
                 else if (currentEquippedItem.itemType == ItemType.Pickaxe)
@@ -138,7 +137,6 @@ public class PlayerController : MonoBehaviour
                         isMining = true;
                         animator.SetBool("isMining", true);
                         targetOre.Mine();
-                        StartCoroutine(ResetMiningAnimation());
                     }
                 }
                 else if (currentEquippedItem.itemType == ItemType.Bow)
@@ -181,70 +179,17 @@ public class PlayerController : MonoBehaviour
         animator.SetBool("isAttacking", false);
     }
 
-    private IEnumerator ResetMiningAnimation()
+    // Викликається з Animation Event в кінці анімації копання
+    public void EndMining()
     {
-        float timer = 0f;
-        while (!animator.GetCurrentAnimatorStateInfo(0).IsName("Player_Ore_Mining_Anim") && timer < 1.0f)
-        {
-            timer += Time.deltaTime;
-            yield return null;
-        }
-
-        if (animator.GetCurrentAnimatorStateInfo(0).IsName("Player_Ore_Mining_Anim"))
-        {
-            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-            yield return new WaitForSeconds(stateInfo.length);
-        }
-        else
-        {
-            yield return new WaitForSeconds(0.5f);
-            Debug.LogWarning("Mining animation state was not entered correctly.");
-        }
-
         animator.SetBool("isMining", false);
         isMining = false;
 
         if (pendingItem != null)
         {
             EquipItem(pendingItem);
-
             pendingItem = null;
         }
-    }
-
-
-    // Корутина для меча/сокири
-    private IEnumerator ResetAttackAnimation()
-    {
-        animator.SetBool("isAttacking", true);
-
-        AttackZone currentAttackZone = GetCurrentAttackZone();
-        if (currentAttackZone != null)
-        {
-            currentAttackZone.Activate();
-
-            // Чекаємо поки реально увійде в анімацію атаки
-            float timer = 0f;
-            while (!animator.GetCurrentAnimatorStateInfo(0).IsTag("Attack") && timer < 1f)
-            {
-                timer += Time.deltaTime;
-                yield return null;
-            }
-
-            // Чекаємо закінчення самої анімації
-            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-            yield return new WaitForSeconds(stateInfo.length);
-
-            currentAttackZone.Deactivate();
-        }
-        else
-        {
-            yield return new WaitForSeconds(0.5f);
-            Debug.LogWarning("Attack zone not found.");
-        }
-
-        animator.SetBool("isAttacking", false);
-        isAttacking = false;
     }
     
     private AttackZone GetCurrentAttackZone()
@@ -275,7 +220,7 @@ public class PlayerController : MonoBehaviour
     }
 
     // Викликається з Animation Event
-    public void AttackEnd()
+    public void EndAttack()
     {
         AttackZone currentAttackZone = GetCurrentAttackZone();
         if (currentAttackZone != null)
