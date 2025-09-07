@@ -53,7 +53,10 @@ public class PlayerController : MonoBehaviour
     [Header("Unarmed Attacks")]
     [SerializeField] private AnimationClip unarmedAttackLeft;
     [SerializeField] private AnimationClip unarmedAttackRight;
-
+    [SerializeField] private float unarmedDamage = 5f; // базовий урон кулаком
+    [SerializeField] private float unarmedAttackRange = 1f; // радіус атаки
+    [SerializeField] private LayerMask enemyLayer; // кого бити
+    
     private float lastShotTime;
     
     private Item pendingItem; // зберігає предмет, який чекає на еквіп
@@ -192,6 +195,23 @@ public class PlayerController : MonoBehaviour
         animator.SetBool("PunchRight", false);
     }
 
+// Викликається з анімації удару кулаком
+    public void DealUnarmedDamage()
+    {
+        // Знаходимо ворогів у невеликому радіусі перед гравцем
+        Vector2 attackPos = (Vector2)transform.position + new Vector2(transform.localScale.x * 0.7f, 0f);
+        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPos, unarmedAttackRange, enemyLayer);
+
+        foreach (Collider2D enemyCol in hitEnemies)
+        {
+            EnemyBase enemy = enemyCol.GetComponent<EnemyBase>();
+            if (enemy != null)
+            {
+                enemy.TakeDamage(unarmedDamage);
+                Debug.Log($"🥊 Удар кулаком наніс {unarmedDamage} урону ворогу {enemy.name}");
+            }
+        }
+    }
 
     // Корутина для списа
     private IEnumerator ResetSpearAttackAnimation()

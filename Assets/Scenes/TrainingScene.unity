@@ -13099,6 +13099,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 1672364719060791388, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
+      propertyPath: enemyLayer.m_Bits
+      value: 256
+      objectReference: {fileID: 0}
+    - target: {fileID: 1672364719060791388, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
       propertyPath: unarmedAttackLeft
       value: 
       objectReference: {fileID: 7400000, guid: df0df10df872f714baff3aa1a7720ad0, type: 2}
