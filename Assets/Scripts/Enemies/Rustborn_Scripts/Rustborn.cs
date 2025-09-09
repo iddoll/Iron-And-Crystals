@@ -170,6 +170,11 @@ public class Rustborn : EnemyBase
         }
     }
 
+    public bool HasArmor()
+    {
+        return corrosionArmorCurrent > 0;
+    }
+    
     private void HandleRegeneration()
     {
         float delay = (corrosionArmorCurrent > 0) ? regenDelayPartial : regenDelayBroken;
@@ -189,6 +194,35 @@ public class Rustborn : EnemyBase
             currentHealth = Mathf.Min(currentHealth, maxHealth);
         }
     }
+    protected override void Die()
+    {
+        // 🛠️ Від'єднуємо всі стріли, що застрягли у ворогу, перед його знищенням
+        DetachArrows();
+        
+        // Викликаємо стандартну логіку смерті з EnemyBase
+        base.Die();
+    }
 
+    private void DetachArrows()
+    {
+        // Проходимо по всіх дочірніх об'єктах у цьому об'єкті
+        // Створюємо список, щоб уникнути помилок під час зміни ієрархії
+        var children = new Transform[transform.childCount];
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            children[i] = transform.GetChild(i);
+        }
+
+        foreach (Transform child in children)
+        {
+            // Перевіряємо, чи є на дочірньому об'єкті скрипт Arrow
+            if (child.GetComponent<Arrow>() != null)
+            {
+                // Від'єднуємо стрілу від ворога.
+                // Вона стане об'єктом верхнього рівня в ієрархії.
+                child.parent = null;
+            }
+        }
+    }
     public float GetArmor01() => corrosionArmorCurrent / corrosionArmorMax;
 }

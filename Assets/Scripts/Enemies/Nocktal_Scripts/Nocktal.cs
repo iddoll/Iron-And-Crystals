@@ -29,10 +29,12 @@ public class Nocktal : EnemyBase
     public float attackZoneLocalY = 0.0f;
 
     [Header("Regeneration Settings")]
-    public float regenDelay = 3f;              // через скільки секунд після останнього урону почнеться реген
-    public float regenPerSecond = 2f;          // швидкість регену HP
-    private float lastHitTime;                 // час останнього урону
+    public float regenDelay = 3f;              
+    public float regenPerSecond = 2f;          
+    private float lastHitTime;                 
 
+    // 👻 Прибираємо isMaterialized, оскільки привид завжди нематеріальний
+    private Collider2D mainCollider;
     
     private static readonly int IsAttackingHash = Animator.StringToHash("isAttacking");
     private static readonly int IsMovingHash = Animator.StringToHash("isMooving");
@@ -54,6 +56,13 @@ public class Nocktal : EnemyBase
         sr = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
 
+        mainCollider = GetComponent<Collider2D>();
+        // 👻 Колайдер привида завжди є тригером
+        if (mainCollider != null)
+        {
+            mainCollider.isTrigger = true;
+        }
+
         rb.interpolation = RigidbodyInterpolation2D.Interpolate;
         lastAttackTime = -attackCooldown;
     }
@@ -70,86 +79,53 @@ public class Nocktal : EnemyBase
         Vector2 targetPosition = rb.position;
         bool isMoving = false;
 
-        // Логіка атаки та руху
         if (playerInAttackZone)
         {
-            // Якщо гравець у зоні атаки, зупиняємо рух і починаємо/продовжуємо атакувати
             isMoving = false;
             if (Time.time - lastAttackTime >= attackCooldown)
             {
                 TryAttack();
             }
         }
-        else if (!isCurrentlyAttacking && playerInFollowRange)
+        else if (playerInFollowRange) 
         {
-            // Рух до гравця, якщо він у радіусі, але не в зоні атаки
             if (Vector2.Distance(transform.position, player.position) > stopDistance)
             {
                 Vector2 direction = (player.position - transform.position).normalized;
                 targetPosition += direction * moveSpeed * Time.fixedDeltaTime;
                 isMoving = true;
             }
-            
-            if (player == null) return;
 
-            HandleAI();
-            HandleRegeneration();
-        }
-        
-        // Вертикальне коливання завжди застосовується
-        float yOffset = Mathf.Sin(Time.time * floatFrequency) * floatAmplitude;
-        targetPosition.y = Mathf.Lerp(rb.position.y, startPosition.y + yOffset, verticalLerp);
-        
-        // Застосовуємо рух
-        rb.MovePosition(targetPosition);
-
-        // Оновлюємо анімацію
-        animator.SetBool(IsMovingHash, isMoving);
-
-        // Поворот (завжди, якщо в радіусі слідування)
-        if (playerInFollowRange)
-        {
             HandleFacing(player.position.x - transform.position.x);
         }
+        else
+        {
+            isMoving = false;
+        }
+
+        float yOffset = Mathf.Sin(Time.time * floatFrequency) * floatAmplitude;
+        targetPosition.y = startPosition.y + yOffset;
+        
+        rb.MovePosition(targetPosition);
+        animator.SetBool(IsMovingHash, isMoving);
+        HandleRegeneration();
     }
-    private void HandleAI()
+    
+    // ... (решта методів, як HandleAI, HandleRegeneration тощо, можуть залишитися)
+
+    // 👻 Прибираємо TakeDamage, оскільки привид не вразливий для стріл
+    // Якщо ви хочете, щоб він все ще міг отримувати урон від чогось іншого,
+    // залиште цей метод, але приберіть перевірку isMaterialized.
+
+    public override void TakeDamage(float damage)
     {
-        bool isCurrentlyAttacking = animator.GetBool(IsAttackingHash);
-        bool playerInFollowRange = Vector2.Distance(transform.position, player.position) <= followRadius;
-        bool playerInAttackZone = attackZone != null && attackZone.playerInZone;
-
-        Vector2 targetPosition = rb.position;
-        bool isMoving = false;
-
-        if (playerInAttackZone)
-        {
-            isMoving = false;
-            if (Time.time - lastAttackTime >= attackCooldown)
-            {
-                TryAttack();
-            }
-        }
-        else if (!isCurrentlyAttacking && playerInFollowRange)
-        {
-            if (Vector2.Distance(transform.position, player.position) > stopDistance)
-            {
-                Vector2 direction = (player.position - transform.position).normalized;
-                targetPosition += direction * moveSpeed * Time.fixedDeltaTime;
-                isMoving = true;
-            }
-        }
-
-        float yOffset = Mathf.Sin(Time.time * floatFrequency) * floatAmplitude;
-        targetPosition.y = Mathf.Lerp(rb.position.y, startPosition.y + yOffset, verticalLerp);
-
-        rb.MovePosition(targetPosition);
-        animator.SetBool(IsMovingHash, isMoving);
-
-        if (playerInFollowRange)
-        {
-            HandleFacing(player.position.x - transform.position.x);
-        }
+        // 👻 Цей метод можна залишити, але він не буде викликатися стрілами
+        // через налаштування колайдерів.
+        base.TakeDamage(damage);
+        lastHitTime = Time.time;
     }
+    
+    // ... (решта ваших методів, як HandleFacing, UpdateAttackZoneSide тощо)
     private void HandleRegeneration()
     {
         if (Time.time - lastHitTime < regenDelay) return;
@@ -198,12 +174,6 @@ public class Nocktal : EnemyBase
         UpdateAttackZoneSide(sign);
     }
     
-    public override void TakeDamage(float damage)
-    {
-        base.TakeDamage(damage);
-        lastHitTime = Time.time;
-    }
-
     private void UpdateAttackZoneSide(float sign)
     {
         if (attackZoneTransform == null) return;

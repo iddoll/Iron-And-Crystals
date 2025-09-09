@@ -6,6 +6,9 @@ public class InventorySystem : MonoBehaviour
 
     [SerializeField] private InventorySlot[] slots;
     private int activeSlotIndex = 0;
+    
+    // Масив для всіх Item Scriptable Objects
+    public Item[] allItems;
 
     private void Awake()
     {
@@ -20,7 +23,6 @@ public class InventorySystem : MonoBehaviour
 
     public InventorySlot GetActiveSlot() => (activeSlotIndex >= 0 && activeSlotIndex < slots.Length) ? slots[activeSlotIndex] : null;
 
-    /// <summary>Встановлює активний слот. Якщо слот не змінюється, просто оновлює екіпірування.</summary>
     public void SetActiveSlot(int index)
     {
         if (index < 0 || index >= slots.Length) return;
@@ -31,7 +33,6 @@ public class InventorySystem : MonoBehaviour
         UpdateActiveItem();
     }
 
-    /// <summary>Оновлює екіпірування гравця відповідно до предмета в активному слоті.</summary>
     public void UpdateActiveItem()
     {
         InventorySlot slot = GetActiveSlot();
@@ -43,7 +44,6 @@ public class InventorySystem : MonoBehaviour
             PlayerController.Instance.UnequipItem();
     }
 
-    /// <summary>Додає предмет в інвентар або в стек, якщо він стековий.</summary>
     public bool AddItem(Item item)
     {
         if (item.isStackable)
@@ -65,13 +65,10 @@ public class InventorySystem : MonoBehaviour
             if (slots[i].IsEmpty())
             {
                 slots[i].AddItem(item);
-
-                // Якщо доданий предмет у активний слот — оновлюємо анімацію
                 if (i == activeSlotIndex || GetActiveSlot().IsEmpty())
                 {
-                    SetActiveSlot(i); // робимо слот активним якщо активний порожній
+                    SetActiveSlot(i);
                 }
-
                 return true;
             }
         }
@@ -80,7 +77,6 @@ public class InventorySystem : MonoBehaviour
         return false;
     }
 
-    /// <summary>Видаляє предмет повністю або зі стека.</summary>
     public void RemoveItem(Item item)
     {
         foreach (var slot in slots)
@@ -95,22 +91,17 @@ public class InventorySystem : MonoBehaviour
                 {
                     slot.ClearSlot();
                 }
-
-                // Якщо видалили предмет з активного слоту — оновлюємо екіпірування
                 if (slot == GetActiveSlot())
                     UpdateActiveItem();
-
                 return;
             }
         }
         Debug.LogWarning($"Предмет {item.itemName} не знайдено в інвентарі для видалення.");
     }
 
-    /// <summary>Видаляє задану кількість предметів зі стеків.</summary>
     public bool RemoveItems(Item item, int amount)
     {
         if (amount <= 0) return true;
-
         int removed = 0;
         foreach (var slot in slots)
         {
@@ -120,20 +111,16 @@ public class InventorySystem : MonoBehaviour
                 for (int i = 0; i < toRemove; i++)
                     slot.RemoveOne();
                 removed += toRemove;
-
                 if (slot == GetActiveSlot())
                     UpdateActiveItem();
-
                 if (removed >= amount)
                     return true;
             }
         }
-
         Debug.LogWarning($"Не вдалося видалити {amount} {item.itemName}. Видалено лише {removed}.");
         return false;
     }
 
-    /// <summary>Повертає кількість предметів у всіх слотах.</summary>
     public int GetItemCount(Item item)
     {
         int count = 0;
@@ -143,7 +130,6 @@ public class InventorySystem : MonoBehaviour
         return count;
     }
 
-    /// <summary>Встановлює предмет активним за іменем.</summary>
     public void SetCurrentTool(string toolName)
     {
         if (toolName == "None")
@@ -151,7 +137,6 @@ public class InventorySystem : MonoBehaviour
             PlayerController.Instance.UnequipItem();
             return;
         }
-
         for (int i = 0; i < slots.Length; i++)
         {
             if (!slots[i].IsEmpty() && slots[i].GetItem().name == toolName)
@@ -160,7 +145,81 @@ public class InventorySystem : MonoBehaviour
                 return;
             }
         }
-
         Debug.LogWarning($"SetCurrentTool: предмет з іменем {toolName} не знайдено в слотах.");
+    }
+    
+    public bool HasItemOfType(ItemType type)
+    {
+        foreach (InventorySlot slot in slots) 
+        {
+            if (!slot.IsEmpty() && slot.GetItem().itemType == type)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void AddItem(ItemType type, int amount)
+    {
+        Item itemToAdd = null;
+        foreach (Item item in allItems)
+        {
+            if (item.itemType == type)
+            {
+                itemToAdd = item;
+                break;
+            }
+        }
+        
+        if (itemToAdd == null)
+        {
+            Debug.LogError($"[InventorySystem] Item of type {type} not found in allItems array!");
+            return;
+        }
+
+        for (int i = 0; i < amount; i++)
+        {
+            if (!AddItem(itemToAdd))
+            {
+                Debug.LogWarning($"[InventorySystem] Inventory is full, could not add all {amount} items.");
+                return;
+            }
+        }
+    }
+
+    public bool RemoveItemByType(ItemType type, int amount)
+    {
+        if (amount <= 0) return true;
+        int totalCount = 0;
+        foreach (var slot in slots)
+        {
+            if (!slot.IsEmpty() && slot.GetItem().itemType == type)
+            {
+                totalCount += slot.GetCurrentCount();
+            }
+        }
+        if (totalCount < amount)
+        {
+            Debug.LogWarning($"[InventorySystem] Not enough items of type {type} to remove. Needed: {amount}, Have: {totalCount}.");
+            return false;
+        }
+        int removedCount = 0;
+        foreach (var slot in slots)
+        {
+            if (!slot.IsEmpty() && slot.GetItem().itemType == type)
+            {
+                int toRemoveFromThisSlot = Mathf.Min(amount - removedCount, slot.GetCurrentCount());
+                slot.ReduceStack(toRemoveFromThisSlot);
+                removedCount += toRemoveFromThisSlot;
+                if (slot == GetActiveSlot())
+                    UpdateActiveItem();
+                if (removedCount >= amount)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
