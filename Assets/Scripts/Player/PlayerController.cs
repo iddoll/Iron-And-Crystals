@@ -91,6 +91,9 @@ public class PlayerController : MonoBehaviour
 
         bool isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 
+        animator.SetBool("isGrounded", isGrounded);
+        animator.SetFloat("yVelocity", rb.linearVelocity.y);
+        
         float moveInput = Input.GetAxis("Horizontal");
         rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
 
@@ -104,8 +107,11 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            animator.SetTrigger("Jump");
         }
 
+        animator.SetBool("isFalling", rb.linearVelocity.y < -0.1f && !isGrounded);
+        
         if (Input.GetMouseButtonDown(0) && !isMining && !isAttacking && canAttack)
         {
             if (currentEquippedItem != null)
