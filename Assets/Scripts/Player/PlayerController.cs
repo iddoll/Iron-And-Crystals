@@ -367,27 +367,52 @@ public class PlayerController : MonoBehaviour
 
     public void DropItemFromInventory(Item itemToDrop)
     {
+        DropItemFromInventory(itemToDrop, 1);
+    }
+
+// new: drops 'amount' items (spawns world prefabs and removes from inventory)
+    public void DropItemFromInventory(Item itemToDrop, int amount)
+    {
         if (itemToDrop == null || itemToDrop.worldPrefab == null)
         {
-            Debug.LogWarning($"Неможливо викинути {itemToDrop?.name ?? "null"}");
+            Debug.LogWarning($"Неможливо викинути {itemToDrop?.name ?? "null"}: предмет null або немає worldPrefab.");
             return;
         }
-        Vector3 dropPosition = transform.position + (Vector3)(transform.localScale.x > 0 ? Vector2.right : Vector2.left) * 0.5f;
-        GameObject droppedWorldObject = Instantiate(itemToDrop.worldPrefab, dropPosition, Quaternion.identity);
-        droppedWorldObject.transform.parent = null;
-        float randomZRotation = Random.Range(-25f, 25f);
-        droppedWorldObject.transform.rotation = Quaternion.Euler(0, 0, randomZRotation);
-        Rigidbody2D rbDropped = droppedWorldObject.GetComponent<Rigidbody2D>();
-        if (rbDropped != null)
+
+        if (amount <= 0) return;
+
+        // Базова позиція для викидання — трохи правіше/лівіше від гравця
+        Vector3 basePosition = transform.position + (Vector3)((transform.localScale.x > 0) ? Vector2.right : Vector2.left) * 0.5f;
+
+        for (int i = 0; i < amount; i++)
         {
-            rbDropped.simulated = true;
-            rbDropped.isKinematic = false;
-            float direction = transform.localScale.x > 0 ? 1f : -1f;
-            rbDropped.AddForce(new Vector2(direction, 0.5f) * 3f, ForceMode2D.Impulse);
-            rbDropped.AddTorque(Random.Range(-5f, 5f), ForceMode2D.Impulse);
+            // Невеликі випадкові зсуви, щоб предмети не спавнились в одній точці
+            Vector3 spawnPos = basePosition + new Vector3(Random.Range(-0.25f, 0.25f), Random.Range(0f, 0.2f), 0f);
+
+            GameObject droppedWorldObject = Instantiate(itemToDrop.worldPrefab, spawnPos, Quaternion.Euler(0, 0, Random.Range(-25f, 25f)));
+            droppedWorldObject.transform.parent = null;
+
+            Rigidbody2D rbDropped = droppedWorldObject.GetComponent<Rigidbody2D>();
+            if (rbDropped != null)
+            {
+                rbDropped.simulated = true;
+                rbDropped.isKinematic = false;
+                float direction = transform.localScale.x > 0 ? 1f : -1f;
+                rbDropped.AddForce(new Vector2(direction, 0.5f) * Random.Range(2f, 4f), ForceMode2D.Impulse);
+                rbDropped.AddTorque(Random.Range(-5f, 5f), ForceMode2D.Impulse);
+            }
         }
-        InventorySystem.Instance.RemoveItem(itemToDrop);
-        Debug.Log($"Викинуто {itemToDrop.itemName} у світ.");
+
+        // Видаляємо предмети з інвентаря (InventorySystem.RemoveItems пройдеться по слотам і зменшить стак)
+        bool ok = InventorySystem.Instance.RemoveItems(itemToDrop, amount);
+        if (!ok)
+        {
+            Debug.LogWarning($"DropItemFromInventory: не вдалося видалити {amount}x {itemToDrop.itemName} з інвентаря.");
+        }
+        else
+        {
+            Debug.Log($"Викинуто {amount}x {itemToDrop.itemName} з інвентаря у світ.");
+        }
     }
 
     public bool IsHolding(Item item)

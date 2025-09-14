@@ -20,68 +20,89 @@ public class InventoryDragManager : MonoBehaviour
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
 
-        draggedIcon.gameObject.SetActive(false);
-        draggedIconText.gameObject.SetActive(false);
+        if (draggedIcon) draggedIcon.gameObject.SetActive(false);
+        if (draggedIconText) draggedIconText.gameObject.SetActive(false);
     }
-
-    public void StartDragging(InventorySlot slot, Item item, int count, Sprite iconSprite)
+    private void Update()
     {
-        draggedItem = item;
-        draggedCount = count;
-        sourceSlot = slot;
-
-        draggedIcon.sprite = iconSprite;
-        draggedIcon.enabled = true;
-        draggedIcon.gameObject.SetActive(true);
-
-        UpdateDraggedText();
+        if (HasItem())
+        {
+            UpdateDraggedPosition(Input.mousePosition);
+        }
     }
+
+    public void StartDragging(InventorySlot originSlot, Item item, int amount, Sprite iconSprite)
+    {
+        sourceSlot = originSlot;
+        draggedItem = item;
+        draggedCount = amount;
+
+        if (draggedIcon != null)
+        {
+            draggedIcon.sprite = iconSprite;
+            draggedIcon.gameObject.SetActive(true);
+        }
+
+        if (draggedCount > 1)
+        {
+            draggedIconText.text = draggedCount.ToString();
+            draggedIconText.gameObject.SetActive(true);
+        }
+        else
+        {
+            draggedIconText.text = "";
+            draggedIconText.gameObject.SetActive(false);
+        }
+
+        // одразу ставимо іконку під курсор
+        UpdateDraggedPosition(Input.mousePosition);
+    }
+
+
 
     public void UpdateDraggedPosition(Vector2 position)
     {
-        draggedIcon.transform.position = position;
-        draggedIconText.transform.position = position + new Vector2(20, -20);
+        if (draggedIcon) draggedIcon.transform.position = position;
+        if (draggedIconText) draggedIconText.transform.position = position + new Vector2(20, -20);
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
         List<RaycastResult> results = new List<RaycastResult>();
         EventSystem.current.RaycastAll(eventData, results);
-        
+
         bool isOverUI = results.Count > 0;
 
         if (!isOverUI)
         {
             if (HasItem())
             {
-                // 🔧 Отримуємо початковий слот, з якого почалося перетягування.
                 InventorySlot startSlot = GetSourceSlot();
                 Item itemToDrop = GetItem();
-            
-                if (startSlot != null && itemToDrop != null)
+                int amount = GetCount();
+
+                if (startSlot != null && itemToDrop != null && amount > 0)
                 {
-                    // 🔧 Викликаємо метод викидання предмета.
-                    PlayerController.Instance.DropItemFromInventory(itemToDrop);
-                    
-                    // 🔧 Очищаємо початковий слот, щоб уникнути дублювання.
-                    startSlot.ClearSlot();
+                    // Викидаємо стільки штук, скільки тягнули
+                    PlayerController.Instance.DropItemFromInventory(itemToDrop, amount);
+                    // НЕ чистимо слот тут — InventorySystem.RemoveItems усередині DropItemFromInventory зробить це
                 }
             }
         }
-        
+
         StopDragging();
     }
 
     public void StopDragging()
     {
         draggedItem = null;
+        draggedCount = 0;
         sourceSlot = null;
-        draggedIcon.gameObject.SetActive(false);
-        draggedIconText.gameObject.SetActive(false);
+        if (draggedIcon) draggedIcon.gameObject.SetActive(false);
+        if (draggedIconText) draggedIconText.gameObject.SetActive(false);
     }
 
     public bool HasItem() => draggedItem != null;
-
     public Item GetItem() => draggedItem;
     public int GetCount() => draggedCount;
     public InventorySlot GetSourceSlot() => sourceSlot;
@@ -90,10 +111,19 @@ public class InventoryDragManager : MonoBehaviour
     public void IncreaseDraggedCount(int amount)
     {
         if (draggedItem == null) return;
-
         draggedCount += amount;
-        UpdateDraggedText();
+        if (draggedCount > 1)
+        {
+            draggedIconText.text = draggedCount.ToString();
+            draggedIconText.gameObject.SetActive(true);
+        }
+        else
+        {
+            draggedIconText.text = "";
+            draggedIconText.gameObject.SetActive(false);
+        }
     }
+
 
     private void UpdateDraggedText()
     {

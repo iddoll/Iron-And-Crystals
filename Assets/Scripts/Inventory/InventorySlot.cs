@@ -183,35 +183,81 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     
     // Змінено OnPointerClick, щоб обробляти Ctrl+Click для розстакування
     public void OnPointerClick(PointerEventData eventData)
+{
+    if (eventData.button != PointerEventData.InputButton.Left) return;
+
+    // --- Ctrl+Click: забрати по одному ---
+    if (Input.GetKey(KeyCode.LeftControl) && !IsEmpty() && currentItem.isStackable)
     {
-        // Важливо: перевіряємо, що це саме ліва кнопка миші
-        if (eventData.button == PointerEventData.InputButton.Left)
+        if (!InventoryDragManager.Instance.HasItem())
         {
-            // Якщо Ctrl зажатий і в інвентарі є стековий предмет
-            if (Input.GetKey(KeyCode.LeftControl) && !IsEmpty() && currentItem.isStackable)
-            {
-                // Якщо ми нічого не тягнемо
-                if (!InventoryDragManager.Instance.HasItem())
-                {
-                    // Взяти одну штуку зі стека
-                    InventoryDragManager.Instance.StartDragging(this, currentItem, 1, icon.sprite);
-                    RemoveOne(); // Зменшити кількість у слоті
-                    isSplittingDrag = true; // Встановлюємо прапорець, що це Drag, ініційований розстакуванням
-                }
-                // Якщо ми вже тягнемо цей предмет
-                else if (InventoryDragManager.Instance.IsDraggingItem(currentItem) && GetCurrentCount() > 0)
-                {
-                    // Додати ще 1 до того, що ми тягнемо
-                    InventoryDragManager.Instance.IncreaseDraggedCount(1);
-                    RemoveOne(); // Забрати ще 1 зі слота
-                    // Тут не потрібно встановлювати isSplittingDrag, бо drag вже активний
-                }
-                // Після обробки Ctrl+Click, ми можемо заблокувати подальшу обробку кліку,
-                // щоб не конфліктувати з іншими можливими діями OnPointerClick, якщо вони є.
-                // eventData.Use(); // Можна розкоментувати, якщо є конфлікти з іншими кліками
-            }
+            // Беремо 1 з цього слота
+            InventoryDragManager.Instance.StartDragging(this, currentItem, 1, icon.sprite);
+            RemoveOne();
         }
+        else if (InventoryDragManager.Instance.IsDraggingItem(currentItem) && GetCurrentCount() > 0)
+        {
+            // Додаємо ще 1 в курсор
+            InventoryDragManager.Instance.IncreaseDraggedCount(1);
+            RemoveOne();
+        }
+        return;
     }
+
+    // --- Якщо вже є щось у курсорі: намагаємось покласти ---
+    if (InventoryDragManager.Instance.HasItem())
+    {
+        Item draggedItem = InventoryDragManager.Instance.GetItem();
+        int draggedCount = InventoryDragManager.Instance.GetCount();
+
+        // Порожній слот → кладемо все
+        if (IsEmpty())
+        {
+            AddItem(draggedItem, draggedCount);
+            InventoryDragManager.Instance.StopDragging();
+            return;
+        }
+
+        // Такий самий предмет → додаємо в стак
+        if (currentItem == draggedItem && currentItem.isStackable)
+        {
+            int spaceLeft = currentItem.maxStack - count;
+            if (spaceLeft > 0)
+            {
+                int toAdd = Mathf.Min(spaceLeft, draggedCount);
+                count += toAdd;
+                RefreshUI();
+
+                if (draggedCount > toAdd)
+                {
+                    InventoryDragManager.Instance.StartDragging(
+                        InventoryDragManager.Instance.GetSourceSlot(),
+                        draggedItem,
+                        draggedCount - toAdd,
+                        draggedItem.icon
+                    );
+                }
+                else
+                {
+                    InventoryDragManager.Instance.StopDragging();
+                }
+            }
+            return;
+        }
+
+        // Якщо інший предмет → нічого не робимо
+        return;
+    }
+
+    // --- Якщо курсор пустий і немає Ctrl ---
+    if (!IsEmpty())
+    {
+        // Взяти весь стак у курсор
+        InventoryDragManager.Instance.StartDragging(this, currentItem, count, icon.sprite);
+        ClearSlot();
+    }
+}
+
 
     private void RefreshUI()
     {
