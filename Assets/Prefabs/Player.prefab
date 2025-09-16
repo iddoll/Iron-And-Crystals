@@ -386,6 +386,7 @@ Transform:
   - {fileID: 5698529314177982301}
   - {fileID: 4239946111006433601}
   - {fileID: 5950912985771913500}
+  - {fileID: 4626440376880096086}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &737286162195616810
@@ -504,10 +505,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 81c901f1be84043489b9984e33815c6f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  BaseAnimatorController: {fileID: 9100000, guid: 4f6e76c875ee1364cb88be2d2542d641, type: 2}
+  BaseAnimatorController: {fileID: 9100000, guid: b6ddbab2f1fa64142bec93e0280376be, type: 2}
   maxHealth: 100
   moveSpeed: 2
   jumpForce: 5
+  unarmedAttackLeft: {fileID: 7400000, guid: df0df10df872f714baff3aa1a7720ad0, type: 2}
+  unarmedAttackRight: {fileID: 7400000, guid: dd155b63bb61959439168d4129961c49, type: 2}
   damageCooldown: 1
   groundCheck: {fileID: 1363828029610117251}
   groundLayer:
@@ -519,6 +522,7 @@ MonoBehaviour:
   swordAttackZone: {fileID: 4010333748702388373}
   axeAttackZone: {fileID: 5135683824159535354}
   lanceAttackZone: {fileID: 7966665738531749339}
+  PunchAttackZone: {fileID: 9125335558082139142}
   firePoint: {fileID: 5983308749340930374}
   arrowPrefab: {fileID: 6332015240612109127, guid: 159d7688f8ea9cb44ad92f734162a9a2, type: 3}
   bowCooldown: 0.5
@@ -613,6 +617,100 @@ MonoBehaviour:
     m_DissipationDistance: 100
     m_PropagationSpeed: 343
   m_DefaultVelocity: {x: 0, y: -1, z: 0}
+--- !u!1 &7877451967272321458
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4626440376880096086}
+  - component: {fileID: 4178570279014674587}
+  - component: {fileID: 9125335558082139142}
+  m_Layer: 3
+  m_Name: PunchAttackZone
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &4626440376880096086
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7877451967272321458}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3897208731216053639}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!61 &4178570279014674587
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7877451967272321458}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0.3566385, y: -0.045174167}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0, y: 0}
+    oldSize: {x: 0, y: 0}
+    newSize: {x: 0, y: 0}
+    adaptiveTilingThreshold: 0
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 0.28672302, y: 0.576789}
+  m_EdgeRadius: 0
+--- !u!114 &9125335558082139142
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7877451967272321458}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb8832d041224ee4bb28c57db3c911ad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 256
 --- !u!1 &8301970863377109320
 GameObject:
   m_ObjectHideFlags: 0

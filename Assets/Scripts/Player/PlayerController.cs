@@ -5,7 +5,7 @@ using UnityEngine.EventSystems;
 public class PlayerController : MonoBehaviour
 {
     public static PlayerController Instance;
-    
+
     [Header("Animation Controllers")]
     public RuntimeAnimatorController BaseAnimatorController;
     [Header("Player Stats")]
@@ -13,13 +13,18 @@ public class PlayerController : MonoBehaviour
     private float currentHealth;
     public float moveSpeed = 2f;
     public float jumpForce = 10f;
-   
+
     private PlayerHealthUI healthUI;
-    
+
+    [Header("Unarmed Attacks")]
+    [SerializeField] private AnimationClip unarmedAttackLeft;
+    [SerializeField] private AnimationClip unarmedAttackRight;
+    public float unarmedDamage = 10f;
+
     [Header("Combat Settings")]
     public float damageCooldown = 1f;
     private bool canTakeDamage = true;
-    
+
     private Rigidbody2D rb;
     private Animator animator;
 
@@ -29,7 +34,7 @@ public class PlayerController : MonoBehaviour
 
     public Transform holdPoint;
     private GameObject heldObject;
-    private Item currentEquippedItem;
+    public Item currentEquippedItem;
 
     private string currentTool = "None";
     public float miningRadius = 2f;
@@ -38,12 +43,13 @@ public class PlayerController : MonoBehaviour
     private bool isAttacking = false;
     private bool canAttack = true;
     private bool isShooting = false;
-    
+
     [Header("Attack Zones")]
     public AttackZone swordAttackZone;
     public AttackZone axeAttackZone;
     public AttackZone lanceAttackZone;
-    
+    public AttackZone PunchAttackZone;
+
     [Header("Bow Shooting")]
     [SerializeField] private Transform firePoint;
     [SerializeField] private GameObject arrowPrefab;
@@ -51,7 +57,7 @@ public class PlayerController : MonoBehaviour
 
     private float lastShotTime;
     private Item pendingItem;
-    
+
     public Cinemachine.CinemachineImpulseSource impulseSource;
 
     private void Awake()
@@ -65,7 +71,7 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         currentHealth = maxHealth;
-        
+
         healthUI = FindObjectOfType<PlayerHealthUI>();
         if (healthUI != null)
         {
@@ -93,17 +99,17 @@ public class PlayerController : MonoBehaviour
 
         animator.SetBool("isGrounded", isGrounded);
         animator.SetFloat("yVelocity", rb.linearVelocity.y);
-        
+
         float moveInput = Input.GetAxis("Horizontal");
         rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
 
         animator.SetBool("isMooving", moveInput != 0);
-        
+
         if (moveInput > 0)
             transform.localScale = new Vector3(1, 1, 1);
         else if (moveInput < 0)
             transform.localScale = new Vector3(-1, 1, 1);
-        
+
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
@@ -111,7 +117,7 @@ public class PlayerController : MonoBehaviour
         }
 
         animator.SetBool("isFalling", rb.linearVelocity.y < -0.1f && !isGrounded);
-        
+
         if (Input.GetMouseButtonDown(0) && !isMining && !isAttacking && canAttack)
         {
             if (currentEquippedItem != null)
@@ -156,6 +162,26 @@ public class PlayerController : MonoBehaviour
                     }
                 }
             }
+            else
+            {
+                // 🥊 Unarmed attack
+                isAttacking = true;
+                canAttack = false;
+                Debug.Log("🥊 Атака кулаками");
+
+                if (Random.value > 0.5f)
+                {
+                    animator.SetBool("PunchLeft", true);
+                }
+                else
+                {
+                    animator.SetBool("PunchRight", true);
+                }
+                
+                // 🌟 Викликаємо AttackStart() для беззбройної атаки
+                AttackStart(); 
+                StartCoroutine(AttackCooldownCoroutine(0.5f));
+            }
         }
     }
 
@@ -172,9 +198,9 @@ public class PlayerController : MonoBehaviour
 
     private IEnumerator ResetSpearAttackAnimation()
     {
+        // Не потрібно викликати lanceAttackZone.Activate() тут, оскільки це робить AttackStart()
         animator.SetBool("isAttacking", true);
-        lanceAttackZone.Activate();
-
+        
         AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
         yield return new WaitForSeconds(stateInfo.length);
 
@@ -195,16 +221,41 @@ public class PlayerController : MonoBehaviour
             pendingItem = null;
         }
     }
-    
-    private AttackZone GetCurrentAttackZone()
+
+    public void EndUnarmedAttack()
     {
-        if (currentEquippedItem == null) return null;
-        if (currentEquippedItem.itemType == ItemType.Sword) return swordAttackZone;
-        if (currentEquippedItem.itemType == ItemType.Axe) return axeAttackZone;
-        return null;
+        isAttacking = false;
+        canAttack = true;
+
+        animator.SetBool("PunchLeft", false);
+        animator.SetBool("PunchRight", false);
+        
+        AttackZone currentAttackZone = GetCurrentAttackZone();
+        if (currentAttackZone != null)
+        {
+            currentAttackZone.Deactivate();
+            Debug.Log("EndUnarmedAttack → зона атаки деактивована");
+        }
     }
     
-    public void DealDamageToEnemy(EnemyBase enemy)
+    public void DealUnarmedDamageToEnemy(EnemyBase enemy)
+    {
+        if (enemy != null)
+        {
+            enemy.TakeDamage(unarmedDamage);
+        }
+    }
+
+    private AttackZone GetCurrentAttackZone()
+    {
+        if (currentEquippedItem == null) return PunchAttackZone;
+        if (currentEquippedItem.itemType == ItemType.Sword) return swordAttackZone;
+        if (currentEquippedItem.itemType == ItemType.Axe) return axeAttackZone;
+        if (currentEquippedItem.itemType == ItemType.Lance) return lanceAttackZone;
+        return null;
+    }
+
+    public void DealArmedDamageToEnemy(EnemyBase enemy)
     {
         if (currentEquippedItem != null && enemy != null)
         {
@@ -370,7 +421,6 @@ public class PlayerController : MonoBehaviour
         DropItemFromInventory(itemToDrop, 1);
     }
 
-// new: drops 'amount' items (spawns world prefabs and removes from inventory)
     public void DropItemFromInventory(Item itemToDrop, int amount)
     {
         if (itemToDrop == null || itemToDrop.worldPrefab == null)
@@ -381,12 +431,10 @@ public class PlayerController : MonoBehaviour
 
         if (amount <= 0) return;
 
-        // Базова позиція для викидання — трохи правіше/лівіше від гравця
         Vector3 basePosition = transform.position + (Vector3)((transform.localScale.x > 0) ? Vector2.right : Vector2.left) * 0.5f;
 
         for (int i = 0; i < amount; i++)
         {
-            // Невеликі випадкові зсуви, щоб предмети не спавнились в одній точці
             Vector3 spawnPos = basePosition + new Vector3(Random.Range(-0.25f, 0.25f), Random.Range(0f, 0.2f), 0f);
 
             GameObject droppedWorldObject = Instantiate(itemToDrop.worldPrefab, spawnPos, Quaternion.Euler(0, 0, Random.Range(-25f, 25f)));
@@ -403,7 +451,6 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        // Видаляємо предмети з інвентаря (InventorySystem.RemoveItems пройдеться по слотам і зменшить стак)
         bool ok = InventorySystem.Instance.RemoveItems(itemToDrop, amount);
         if (!ok)
         {
@@ -420,7 +467,7 @@ public class PlayerController : MonoBehaviour
         if (heldObject == null || item == null) return false;
         return currentTool == item.name;
     }
-    
+
     public void TakeDamage(float amount)
     {
         if (!canTakeDamage) return;
