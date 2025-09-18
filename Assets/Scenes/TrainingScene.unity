@@ -13787,6 +13787,10 @@ PrefabInstance:
       propertyPath: unarmedDamage
       value: 3
       objectReference: {fileID: 0}
+    - target: {fileID: 1672364719060791388, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
+      propertyPath: runSpeedMultiplier
+      value: 1.5
+      objectReference: {fileID: 0}
     - target: {fileID: 3897208731216053639, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
       propertyPath: m_LocalPosition.x
       value: 1.903

@@ -14,6 +14,12 @@ public class PlayerController : MonoBehaviour
     public float moveSpeed = 2f;
     public float jumpForce = 10f;
 
+    [Header("Movement Modifiers")]
+    public float runSpeedMultiplier = 1.8f;
+    public float crouchSpeedMultiplier = 0.5f;
+    private bool isRunning = false;
+    private bool isCrouching = false;
+    
     private PlayerHealthUI healthUI;
 
     [Header("Unarmed Attacks")]
@@ -101,15 +107,35 @@ public class PlayerController : MonoBehaviour
         animator.SetFloat("yVelocity", rb.linearVelocity.y);
 
         float moveInput = Input.GetAxis("Horizontal");
-        rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
 
+// Перевіряємо присідання
+        if (Input.GetKey(KeyCode.LeftControl))
+        {
+            isCrouching = true;
+            isRunning = false; // не можна бігти, коли присідаєш
+        }
+        else
+        {
+            isCrouching = false;
+            isRunning = Input.GetKey(KeyCode.LeftShift);
+        }
+
+// Встановлюємо швидкість
+        float currentSpeed = moveSpeed;
+        if (isRunning) currentSpeed *= runSpeedMultiplier;
+        if (isCrouching) currentSpeed *= crouchSpeedMultiplier;
+
+        rb.linearVelocity = new Vector2(moveInput * currentSpeed, rb.linearVelocity.y);
+
+// Анімація руху
         animator.SetBool("isMooving", moveInput != 0);
+        animator.SetBool("isRunning", isRunning);
+        animator.SetBool("isCrouching", isCrouching);
 
-        if (moveInput > 0)
-            transform.localScale = new Vector3(1, 1, 1);
-        else if (moveInput < 0)
-            transform.localScale = new Vector3(-1, 1, 1);
-
+// Поворот персонажа
+        if (moveInput > 0) transform.localScale = new Vector3(1, 1, 1);
+        else if (moveInput < 0) transform.localScale = new Vector3(-1, 1, 1);
+        
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
