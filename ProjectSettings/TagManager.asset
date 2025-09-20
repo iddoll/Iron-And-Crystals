@@ -10,6 +10,7 @@ TagManager:
   - Background
   - OreBlock
   - Enemy
+  - Ladder
   layers:
   - Default
   - TransparentFX

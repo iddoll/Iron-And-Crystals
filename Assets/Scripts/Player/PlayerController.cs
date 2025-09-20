@@ -13,7 +13,8 @@ public class PlayerController : MonoBehaviour
     private float currentHealth;
     public float moveSpeed = 2f;
     public float jumpForce = 10f;
-
+    private float defaultGravityScale;
+    
     [Header("Movement Modifiers")]
     public float runSpeedMultiplier = 1.8f;
     public float crouchSpeedMultiplier = 0.5f;
@@ -60,9 +61,16 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private Transform firePoint;
     [SerializeField] private GameObject arrowPrefab;
     [SerializeField] private float bowCooldown = 0.5f;
-
     private float lastShotTime;
     private Item pendingItem;
+    
+    [Header("Climbing Settings")]
+    public float climbSpeed = 3f;
+    private bool isClimbing = false;
+    private bool isNearLadder = false;
+    private Collider2D currentLadderCollider;
+    private float ladderCenterX;
+
 
     public Cinemachine.CinemachineImpulseSource impulseSource;
 
@@ -76,6 +84,7 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+        defaultGravityScale = rb.gravityScale;
         currentHealth = maxHealth;
 
         healthUI = FindObjectOfType<PlayerHealthUI>();
@@ -136,13 +145,75 @@ public class PlayerController : MonoBehaviour
         if (moveInput > 0) transform.localScale = new Vector3(1, 1, 1);
         else if (moveInput < 0) transform.localScale = new Vector3(-1, 1, 1);
         
+        
+        // отримуємо "сирий" вертикальний ввід (W/S або стрілки)
+        float verticalRaw = Input.GetAxisRaw("Vertical");
+
+// якщо поруч з драбиною і натиснуто вгору/вниз — починаємо лазити
+        if (isNearLadder && Mathf.Abs(verticalRaw) > 0f)
+        {
+            if (!isClimbing)
+            {
+                // опціонально: при старті підйому «прилипаємо» по X до центру драбини
+                if (currentLadderCollider != null)
+                {
+                    Vector3 p = transform.position;
+                    p.x = ladderCenterX;
+                    transform.position = p;
+                }
+                // скидаємо швидкість, щоб не «проштовхувало»
+                rb.linearVelocity = Vector2.zero;
+            }
+            isClimbing = true;
+        }
+        else if (!isNearLadder)
+        {
+            isClimbing = false;
+        }
+
+// виконання лазіння
+        if (isClimbing)
+        {
+            rb.gravityScale = 0f;
+            float vertical = Input.GetAxisRaw("Vertical");
+
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, vertical * climbSpeed);
+
+            if (vertical != 0)
+            {
+                animator.SetBool("isClimbing", true);   // рух по драбині
+                animator.SetBool("isClimbIdle", false);
+            }
+            else
+            {
+                animator.SetBool("isClimbing", false);
+                animator.SetBool("isClimbIdle", true);  // зависли на драбині
+                rb.linearVelocity = new Vector2(0, 0);  // щоб не ковзав вниз
+            }
+        }
+        else
+        {
+            // повертаємо початкову гравітацію
+            rb.gravityScale = defaultGravityScale;
+            animator.SetBool("isClimbing", false);
+            animator.SetBool("isClimbIdle", false);
+        }
+
+
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
             animator.SetTrigger("Jump");
         }
 
-        animator.SetBool("isFalling", rb.linearVelocity.y < -0.1f && !isGrounded);
+        if (isClimbing || animator.GetBool("isClimbIdle"))
+        {
+            animator.SetBool("isFalling", false);
+        }
+        else
+        {
+            animator.SetBool("isFalling", rb.linearVelocity.y < -0.1f && !isGrounded);
+        }
 
         if (Input.GetMouseButtonDown(0) && !isMining && !isAttacking && canAttack)
         {
@@ -529,4 +600,25 @@ public class PlayerController : MonoBehaviour
             animator.enabled = false;
         }
     }
+    
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Ladder"))
+        {
+            isNearLadder = true;
+            currentLadderCollider = other;
+            ladderCenterX = other.bounds.center.x;
+        }
+    }
+
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        if (other.CompareTag("Ladder"))
+        {
+            isNearLadder = false;
+            isClimbing = false;
+            currentLadderCollider = null;
+        }
+    }
+
 }
