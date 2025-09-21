@@ -258,30 +258,41 @@ public class PlayerController : MonoBehaviour
                         animator.SetBool("isShooting", false);
                     }
                 }
+                else
+                {
+                    // 🥊 Якщо предмет є, але він не зброя → б’ємо кулаком
+                    DoUnarmedAttack();
+                }
             }
             else
             {
                 // 🥊 Unarmed attack
-                isAttacking = true;
-                canAttack = false;
-                Debug.Log("🥊 Атака кулаками");
-
-                if (Random.value > 0.5f)
-                {
-                    animator.SetBool("PunchLeft", true);
-                }
-                else
-                {
-                    animator.SetBool("PunchRight", true);
-                }
-                
-                // 🌟 Викликаємо AttackStart() для беззбройної атаки
-                AttackStart(); 
-                StartCoroutine(AttackCooldownCoroutine(0.5f));
+                DoUnarmedAttack();
             }
         }
     }
 
+    private void DoUnarmedAttack()
+    {
+        isAttacking = true;
+        canAttack = false;
+        Debug.Log("🥊 Атака кулаками");
+
+        if (Random.value > 0.5f)
+        {
+            animator.SetBool("PunchLeft", true);
+            animator.SetBool("PunchRight", false);
+        }
+        else
+        {
+            animator.SetBool("PunchRight", true);
+            animator.SetBool("PunchLeft", false);
+        }
+
+        AttackStart(); 
+        StartCoroutine(AttackCooldownCoroutine(0.5f));
+    }
+    
     private bool ShouldBlockInput()
     {
         if (InventoryUIManager.Instance != null && InventoryUIManager.Instance.IsInventoryOpen())
