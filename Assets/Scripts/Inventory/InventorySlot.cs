@@ -2,57 +2,55 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
-public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerClickHandler // Додаємо IPointerClickHandler
+public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerClickHandler
 {
     [Header("UI Elements")]
-    [SerializeField] private Image icon;      // Іконка предмета (не фон!)
-    [SerializeField] private Text countText;  // Текст кількості
+    [SerializeField] private Image icon;
+    [SerializeField] private Text countText;
 
     private Item currentItem;
     private int count;
-    public int slotIndex; // Додати у InventorySlot
+    public int slotIndex;
 
-    // Прапорець для відстеження, чи був запущений Drag через Ctrl+Click
-    private bool isSplittingDrag = false; 
+    private bool isSplittingDrag = false;
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        // Якщо ми вже почали розстакування через OnPointerClick, ігноруємо стандартний Drag
-        if (isSplittingDrag) 
+        if (isSplittingDrag)
         {
-            isSplittingDrag = false; // Скидаємо прапорець
-            return; 
+            isSplittingDrag = false;
+            return;
         }
 
         if (IsEmpty()) return;
         InventoryDragManager.Instance.StartDragging(this, currentItem, count, icon.sprite);
+        // Не очищаємо слот тут, щоб уникнути зникнення предмета при невдалому перетягуванні
     }
 
     public void OnDrag(PointerEventData eventData)
     {
-        // Ми завжди оновлюємо позицію, незалежно від того, як почався Drag
         InventoryDragManager.Instance.UpdateDraggedPosition(eventData.position);
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        // Важливо: тепер ми не обробляємо логіку тут
-        // Просто делегуємо її InventoryDragManager
-        InventoryDragManager.Instance.OnEndDrag(eventData);
+        InventoryDragManager.Instance.OnEndDrag(eventData, this);
     }
 
     public void OnDrop(PointerEventData eventData)
     {
         if (!InventoryDragManager.Instance.HasItem()) return;
 
+        // Отримуємо джерело перетягування
         InventorySlot fromSlot = InventoryDragManager.Instance.GetSourceSlot();
-        if (fromSlot == this) return;
+        EquipmentSlot fromEquipSlot = eventData.pointerDrag?.GetComponent<EquipmentSlot>();
+
+        if (fromSlot == this || fromEquipSlot == this) return;
 
         Item incomingItem = InventoryDragManager.Instance.GetItem();
         int incomingCount = InventoryDragManager.Instance.GetCount();
 
-        // Якщо ми перетягуємо предмет, який зараз активний у InventorySystem
-        if (InventorySystem.Instance.GetActiveSlotIndex() == fromSlot.slotIndex)
+        if (fromSlot != null && InventorySystem.Instance.GetActiveSlotIndex() == fromSlot.slotIndex)
         {
             PlayerController.Instance.UnequipItem();
             InventorySystem.Instance.SetCurrentTool("None");
@@ -68,7 +66,14 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
                 count += amountToStack;
                 RefreshUI();
 
-                fromSlot.ReduceStack(amountToStack);
+                if (fromSlot != null)
+                {
+                    fromSlot.ReduceStack(amountToStack);
+                }
+                else if (fromEquipSlot != null)
+                {
+                    fromEquipSlot.ClearSlot();
+                }
 
                 if (incomingCount > amountToStack)
                     InventoryDragManager.Instance.StartDragging(fromSlot, incomingItem, incomingCount - amountToStack, incomingItem.icon);
@@ -84,18 +89,33 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         int tempCount = count;
 
         AddItem(incomingItem, incomingCount);
-        fromSlot.AddItem(tempItem, tempCount);
 
-        // Якщо новий слот став активним, можна екіпірувати
+        if (fromSlot != null)
+        {
+            fromSlot.AddItem(tempItem, tempCount);
+        }
+        else if (fromEquipSlot != null)
+        {
+            if (tempItem != null)
+            {
+                // Якщо в InventorySlot був предмет, повертаємо його в EquipmentSlot
+                fromEquipSlot.SetItem(tempItem);
+            }
+            else
+            {
+                fromEquipSlot.ClearSlot();
+            }
+        }
+
         if (InventorySystem.Instance.GetActiveSlotIndex() == slotIndex)
         {
             Item item = GetItem();
             if (item != null && item.equippedPrefab != null)
                 PlayerController.Instance.EquipItem(item);
         }
+        
+        InventoryDragManager.Instance.StopDragging();
     }
-
-
 
     public void ReduceStack(int amount)
     {
@@ -118,7 +138,6 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
         QuiqSlot.Instance?.OnSlotChanged(this);
 
-        // Якщо цей слот активний, одразу екіпірувати предмет
         if (InventorySystem.Instance.GetActiveSlotIndex() == slotIndex)
             InventorySystem.Instance.UpdateActiveItem();
     }
@@ -131,7 +150,6 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
         QuiqSlot.Instance?.OnSlotChanged(this);
 
-        // Якщо цей слот активний, оновлюємо екіпірування
         if (InventorySystem.Instance.GetActiveSlotIndex() == slotIndex)
             InventorySystem.Instance.UpdateActiveItem();
     }
@@ -155,10 +173,6 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             count++;
             RefreshUI();
         }
-        else
-        {
-            Debug.LogWarning("Спроба додати предмет до заповненого стаку або неіснуючого предмета.");
-        }
     }
 
     public void RemoveOne()
@@ -175,89 +189,36 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
                 RefreshUI();
             }
         }
-        else
-        {
-            Debug.LogWarning("Спроба видалити предмет з порожнього або неіснуючого стаку.");
-        }
     }
     
-    // Змінено OnPointerClick, щоб обробляти Ctrl+Click для розстакування
     public void OnPointerClick(PointerEventData eventData)
-{
-    if (eventData.button != PointerEventData.InputButton.Left) return;
-
-    // --- Ctrl+Click: забрати по одному ---
-    if (Input.GetKey(KeyCode.LeftControl) && !IsEmpty() && currentItem.isStackable)
     {
+        if (InventoryDragManager.Instance.HasItem() && eventData.button == PointerEventData.InputButton.Left)
+        {
+            OnDrop(eventData);
+            return;
+        }
+
         if (!InventoryDragManager.Instance.HasItem())
         {
-            // Беремо 1 з цього слота
-            InventoryDragManager.Instance.StartDragging(this, currentItem, 1, icon.sprite);
-            RemoveOne();
-        }
-        else if (InventoryDragManager.Instance.IsDraggingItem(currentItem) && GetCurrentCount() > 0)
-        {
-            // Додаємо ще 1 в курсор
-            InventoryDragManager.Instance.IncreaseDraggedCount(1);
-            RemoveOne();
-        }
-        return;
-    }
-
-    // --- Якщо вже є щось у курсорі: намагаємось покласти ---
-    if (InventoryDragManager.Instance.HasItem())
-    {
-        Item draggedItem = InventoryDragManager.Instance.GetItem();
-        int draggedCount = InventoryDragManager.Instance.GetCount();
-
-        // Порожній слот → кладемо все
-        if (IsEmpty())
-        {
-            AddItem(draggedItem, draggedCount);
-            InventoryDragManager.Instance.StopDragging();
-            return;
-        }
-
-        // Такий самий предмет → додаємо в стак
-        if (currentItem == draggedItem && currentItem.isStackable)
-        {
-            int spaceLeft = currentItem.maxStack - count;
-            if (spaceLeft > 0)
+            if (eventData.button == PointerEventData.InputButton.Right)
             {
-                int toAdd = Mathf.Min(spaceLeft, draggedCount);
-                count += toAdd;
-                RefreshUI();
-
-                if (draggedCount > toAdd)
+                if (!IsEmpty())
                 {
-                    InventoryDragManager.Instance.StartDragging(
-                        InventoryDragManager.Instance.GetSourceSlot(),
-                        draggedItem,
-                        draggedCount - toAdd,
-                        draggedItem.icon
-                    );
-                }
-                else
-                {
-                    InventoryDragManager.Instance.StopDragging();
+                    PlayerController.Instance.DropItemFromInventory(currentItem, 1);
+                    ReduceStack(1);
                 }
             }
-            return;
+            else if (eventData.button == PointerEventData.InputButton.Left)
+            {
+                if (!IsEmpty())
+                {
+                    InventoryDragManager.Instance.StartDragging(this, currentItem, count, icon.sprite);
+                    ClearSlot();
+                }
+            }
         }
-
-        // Якщо інший предмет → нічого не робимо
-        return;
     }
-
-    // --- Якщо курсор пустий і немає Ctrl ---
-    if (!IsEmpty())
-    {
-        // Взяти весь стак у курсор
-        InventoryDragManager.Instance.StartDragging(this, currentItem, count, icon.sprite);
-        ClearSlot();
-    }
-}
-
 
     private void RefreshUI()
     {
@@ -290,7 +251,7 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             countText.text = currentItem.isStackable && count > 1 ? count.ToString() : "";
             countText.enabled = currentItem.isStackable && count > 1;
         }
-        else // Слот порожній
+        else
         {
             icon.sprite = null;
             icon.enabled = false;

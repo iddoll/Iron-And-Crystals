@@ -9,7 +9,11 @@ public enum ItemType
     Lance,
     Bow,
     Arrow,
-    Crystal
+    Crystal,
+    Helmet,
+    Armor,
+    Shield,
+    Boots
 }
 
 // Нове перерахування для методів підбору
@@ -22,6 +26,9 @@ public enum PickupMethod
 [CreateAssetMenu(menuName = "Inventory/Item")]
 public class Item : ScriptableObject
 {
+    [Header("Equipped visuals")]
+    public Sprite equippedSprite; // вигляд на персонажі (наприклад, шолом на голові)
+
     public string itemName;
     public Sprite icon;
     public bool isStackable;

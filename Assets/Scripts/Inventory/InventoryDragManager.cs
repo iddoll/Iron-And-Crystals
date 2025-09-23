@@ -14,6 +14,7 @@ public class InventoryDragManager : MonoBehaviour
     private Item draggedItem;
     private int draggedCount;
     private InventorySlot sourceSlot;
+    private EquipmentSlot sourceEquipSlot;
 
     private void Awake()
     {
@@ -23,6 +24,7 @@ public class InventoryDragManager : MonoBehaviour
         if (draggedIcon) draggedIcon.gameObject.SetActive(false);
         if (draggedIconText) draggedIconText.gameObject.SetActive(false);
     }
+
     private void Update()
     {
         if (HasItem())
@@ -30,35 +32,38 @@ public class InventoryDragManager : MonoBehaviour
             UpdateDraggedPosition(Input.mousePosition);
         }
     }
-
+    
+    // Перевантажений метод для InventorySlot
     public void StartDragging(InventorySlot originSlot, Item item, int amount, Sprite iconSprite)
     {
         sourceSlot = originSlot;
+        sourceEquipSlot = null;
         draggedItem = item;
         draggedCount = amount;
-
+        UpdateUI(iconSprite);
+    }
+    
+    // Перевантажений метод для EquipmentSlot
+    public void StartDragging(EquipmentSlot originEquipSlot, Item item, int amount, Sprite iconSprite)
+    {
+        sourceEquipSlot = originEquipSlot;
+        sourceSlot = null;
+        draggedItem = item;
+        draggedCount = amount;
+        UpdateUI(iconSprite);
+    }
+    
+    private void UpdateUI(Sprite iconSprite)
+    {
         if (draggedIcon != null)
         {
             draggedIcon.sprite = iconSprite;
             draggedIcon.gameObject.SetActive(true);
         }
-
-        if (draggedCount > 1)
-        {
-            draggedIconText.text = draggedCount.ToString();
-            draggedIconText.gameObject.SetActive(true);
-        }
-        else
-        {
-            draggedIconText.text = "";
-            draggedIconText.gameObject.SetActive(false);
-        }
-
-        // одразу ставимо іконку під курсор
+        draggedIconText.text = draggedCount > 1 ? draggedCount.ToString() : "";
+        draggedIconText.gameObject.SetActive(draggedCount > 1);
         UpdateDraggedPosition(Input.mousePosition);
     }
-
-
 
     public void UpdateDraggedPosition(Vector2 position)
     {
@@ -66,30 +71,44 @@ public class InventoryDragManager : MonoBehaviour
         if (draggedIconText) draggedIconText.transform.position = position + new Vector2(20, -20);
     }
 
-    public void OnEndDrag(PointerEventData eventData)
+    public void OnEndDrag(PointerEventData eventData, MonoBehaviour sourceObject)
     {
         List<RaycastResult> results = new List<RaycastResult>();
         EventSystem.current.RaycastAll(eventData, results);
-
-        bool isOverUI = results.Count > 0;
-
-        if (!isOverUI)
+        
+        bool droppedOnValidTarget = false;
+        foreach (var result in results)
+        {
+            if (result.gameObject.GetComponent<InventorySlot>() != null || result.gameObject.GetComponent<EquipmentSlot>() != null)
+            {
+                droppedOnValidTarget = true;
+                break;
+            }
+        }
+        
+        // Якщо предмет був кинутий поза UI
+        if (!droppedOnValidTarget)
         {
             if (HasItem())
             {
-                InventorySlot startSlot = GetSourceSlot();
                 Item itemToDrop = GetItem();
                 int amount = GetCount();
-
-                if (startSlot != null && itemToDrop != null && amount > 0)
+                
+                // Якщо джерелом був InventorySlot, то видаляємо предмет
+                if (sourceObject is InventorySlot)
                 {
-                    // Викидаємо стільки штук, скільки тягнули
                     PlayerController.Instance.DropItemFromInventory(itemToDrop, amount);
-                    // НЕ чистимо слот тут — InventorySystem.RemoveItems усередині DropItemFromInventory зробить це
+                }
+                else if (sourceObject is EquipmentSlot)
+                {
+                    // Якщо джерелом був EquipmentSlot, повертаємо предмет назад,
+                    // а не викидаємо його
+                    (sourceObject as EquipmentSlot).SetItem(itemToDrop);
                 }
             }
         }
-
+        
+        // Завжди зупиняємо перетягування після обробки
         StopDragging();
     }
 
@@ -98,6 +117,7 @@ public class InventoryDragManager : MonoBehaviour
         draggedItem = null;
         draggedCount = 0;
         sourceSlot = null;
+        sourceEquipSlot = null;
         if (draggedIcon) draggedIcon.gameObject.SetActive(false);
         if (draggedIconText) draggedIconText.gameObject.SetActive(false);
     }
@@ -106,36 +126,6 @@ public class InventoryDragManager : MonoBehaviour
     public Item GetItem() => draggedItem;
     public int GetCount() => draggedCount;
     public InventorySlot GetSourceSlot() => sourceSlot;
+    public EquipmentSlot GetSourceEquipSlot() => sourceEquipSlot;
     public bool IsDraggingItem(Item item) => draggedItem == item;
-
-    public void IncreaseDraggedCount(int amount)
-    {
-        if (draggedItem == null) return;
-        draggedCount += amount;
-        if (draggedCount > 1)
-        {
-            draggedIconText.text = draggedCount.ToString();
-            draggedIconText.gameObject.SetActive(true);
-        }
-        else
-        {
-            draggedIconText.text = "";
-            draggedIconText.gameObject.SetActive(false);
-        }
-    }
-
-
-    private void UpdateDraggedText()
-    {
-        if (draggedCount > 1)
-        {
-            draggedIconText.text = draggedCount.ToString();
-            draggedIconText.gameObject.SetActive(true);
-        }
-        else
-        {
-            draggedIconText.text = "";
-            draggedIconText.gameObject.SetActive(false);
-        }
-    }
 }

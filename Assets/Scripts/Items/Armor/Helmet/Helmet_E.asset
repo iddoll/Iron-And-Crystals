@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36f0ddced9ecdde4ab1fecb244992d60, type: 3}
+  m_Name: Helmet_E
+  m_EditorClassIdentifier: 
+  equippedSprite: {fileID: -7732569738864306783, guid: 7ee9bd5d7b4f92b409159b0e70493651, type: 3}
+  itemName: Helmet_E
+  icon: {fileID: -7732569738864306783, guid: 7ee9bd5d7b4f92b409159b0e70493651, type: 3}
+  isStackable: 0
+  maxStack: 1
+  overrideController: {fileID: 0}
+  damage: 0
+  attackCooldown: 0
+  worldPrefab: {fileID: 7608905551257253048, guid: 767374b529d8a6c4bb84bab0462d450e, type: 3}
+  equippedPrefab: {fileID: 7608905551257253048, guid: 42f522c22c32ce34ea98984d34583afd, type: 3}
+  itemType: 8
+  canBeEquipped: 0
+  equippedLocalPosition: {x: 0, y: 0, z: 0}
+  equippedLocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  pickupMethod: 1
