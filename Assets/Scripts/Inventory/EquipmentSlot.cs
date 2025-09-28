@@ -19,8 +19,10 @@ public class EquipmentSlot : MonoBehaviour, IDropHandler, IPointerClickHandler, 
         InventoryDragManager.Instance.StartDragging(this, currentItem, 1, icon.sprite);
         
         // Очищаємо слот, щоб запобігти дублюванню
+        // 🛡️ Коректний виклик UnequipItem, який тепер обробить Shield або Helmet 🛡️
         if (PlayerEquipment.Instance != null)
             PlayerEquipment.Instance.UnequipItem(currentItem.itemType);
+            
         currentItem = null;
         if (icon != null)
         {
@@ -123,6 +125,7 @@ public class EquipmentSlot : MonoBehaviour, IDropHandler, IPointerClickHandler, 
             {
                 if (PlayerEquipment.Instance != null)
                     PlayerEquipment.Instance.UnequipItem(currentItem.itemType);
+                
                 currentItem = null;
                 if (icon != null)
                 {
@@ -136,8 +139,11 @@ public class EquipmentSlot : MonoBehaviour, IDropHandler, IPointerClickHandler, 
                     Instantiate(currentItem.worldPrefab, PlayerController.Instance.transform.position + Vector3.up * 0.5f, Quaternion.identity);
                 else
                     Debug.LogWarning($"Could not add {currentItem.itemName} to inventory and there is no worldPrefab.");
+                    
+                // 🛡️ Виклик UnequipItem, навіть якщо предмет викинули 🛡️
                 if (PlayerEquipment.Instance != null)
                     PlayerEquipment.Instance.UnequipItem(currentItem.itemType);
+                    
                 currentItem = null;
                 if (icon != null)
                 {

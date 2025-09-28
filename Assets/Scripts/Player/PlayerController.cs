@@ -64,13 +64,17 @@ public class PlayerController : MonoBehaviour
     private float lastShotTime;
     private Item pendingItem;
     
+    [Header("Shield Settings")]
+    public Transform shieldPoint; 
+    public GameObject heldShieldObject;
+    
     [Header("Climbing Settings")]
     public float climbSpeed = 3f;
     private bool isClimbing = false;
     private bool isNearLadder = false;
     private Collider2D currentLadderCollider;
     private float ladderCenterX;
-
+    
 
     public Cinemachine.CinemachineImpulseSource impulseSource;
 
@@ -96,8 +100,13 @@ public class PlayerController : MonoBehaviour
         impulseSource = GetComponent<Cinemachine.CinemachineImpulseSource>();
     }
 
+// У PlayerController.cs
+
     private void Update()
     {
+        // 🛡️ Перевірка статусу блокування на початку Update 🛡️
+        bool isBlocking = ShieldController.Instance != null && ShieldController.Instance.IsBlocking;
+        
         if (ShouldBlockInput())
         {
             rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
@@ -129,10 +138,21 @@ public class PlayerController : MonoBehaviour
             isRunning = Input.GetKey(KeyCode.LeftShift);
         }
 
+        // 🛡️ Обмеження руху при блокуванні 🛡️
+        if (isBlocking)
+        {
+            isRunning = false;
+            isCrouching = false;
+        }
+
 // Встановлюємо швидкість
         float currentSpeed = moveSpeed;
         if (isRunning) currentSpeed *= runSpeedMultiplier;
         if (isCrouching) currentSpeed *= crouchSpeedMultiplier;
+        
+        // 🛡️ Застосовуємо множник швидкості блоку 🛡️
+        if (isBlocking) currentSpeed *= ShieldController.Instance.blockMoveMultiplier;
+
 
         rb.linearVelocity = new Vector2(moveInput * currentSpeed, rb.linearVelocity.y);
 
@@ -150,7 +170,8 @@ public class PlayerController : MonoBehaviour
         float verticalRaw = Input.GetAxisRaw("Vertical");
 
 // якщо поруч з драбиною і натиснуто вгору/вниз — починаємо лазити
-        if (isNearLadder && Mathf.Abs(verticalRaw) > 0f)
+        // 🛡️ Блок лазіння при блокуванні 🛡️
+        if (isNearLadder && Mathf.Abs(verticalRaw) > 0f && !isBlocking)
         {
             if (!isClimbing)
             {
@@ -166,12 +187,12 @@ public class PlayerController : MonoBehaviour
             }
             isClimbing = true;
         }
-        else if (!isNearLadder)
+        else if (!isNearLadder || isBlocking) // Припиняємо лазіння, якщо почали блокувати
         {
             isClimbing = false;
         }
 
-// виконання лазіння
+        // виконання лазіння
         if (isClimbing)
         {
             rb.gravityScale = 0f;
@@ -200,11 +221,13 @@ public class PlayerController : MonoBehaviour
         }
 
 
-        if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
+        // 🛡️ Блок стрибка при блокуванні 🛡️
+        if (!isBlocking && Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
             animator.SetTrigger("Jump");
         }
+
 
         if (isClimbing || animator.GetBool("isClimbIdle"))
         {
@@ -215,7 +238,8 @@ public class PlayerController : MonoBehaviour
             animator.SetBool("isFalling", rb.linearVelocity.y < -0.1f && !isGrounded);
         }
 
-        if (Input.GetMouseButtonDown(0) && !isMining && !isAttacking && canAttack)
+        // 🛡️ Блок атаки при блокуванні 🛡️
+        if (!isBlocking && Input.GetMouseButtonDown(0) && !isMining && !isAttacking && canAttack)
         {
             if (currentEquippedItem != null)
             {
@@ -478,7 +502,23 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        UnequipItem();
+        // 🛑 ВИДАЛЕНО ЛОГІКУ ЩИТА З EQUIPMENT ITEM. 
+        // Тепер EquipItem обробляє ТІЛЬКИ зброю/інструменти (те, що береться в руки).
+        // ЛОГІКА ЩИТА/БРОНІ ТЕПЕР ТІЛЬКИ ЧЕРЕЗ PlayerEquipment.cs
+    
+        // ⚔️ ЛОГІКА ЗБРОЇ/ІНСТРУМЕНТІВ ⚔️
+    
+        // Спочатку знімаємо попередній предмет з рук
+        UnequipItem(); 
+
+        // Перевірка: Якщо новий предмет є щитом або шоломом, ми нічого не беремо в руки і виходимо.
+        if (item != null && (item.itemType == ItemType.Shield || item.itemType == ItemType.Helmet))
+        {
+            currentEquippedItem = null;
+            SetCurrentTool("None");
+            animator.runtimeAnimatorController = BaseAnimatorController;
+            return; 
+        }
 
         if (item != null && item.equippedPrefab != null)
         {
@@ -524,6 +564,18 @@ public class PlayerController : MonoBehaviour
         Debug.Log("Предмет успішно де-екіпіровано.");
     }
 
+    
+    public void UnequipShield()
+    {
+        if (heldShieldObject != null)
+        {
+            Destroy(heldShieldObject);
+            heldShieldObject = null;
+        }
+
+        ShieldController.Instance?.SetEquipped(false);
+    }
+    
     public void DropItemFromInventory(Item itemToDrop)
     {
         DropItemFromInventory(itemToDrop, 1);
@@ -576,9 +628,72 @@ public class PlayerController : MonoBehaviour
         return currentTool == item.name;
     }
 
+    // Викликається, коли щит починає блокувати (ПКМ натиснуто)
+    public void OnStartBlocking()
+    {
+        // Прериваємо поточні дії
+        if (isAttacking)
+        {
+            // миттєво скидаємо атаку
+            isAttacking = false;
+            animator.SetBool("isAttacking", false);
+            // Деактивувати зони атаки
+            AttackZone az = GetCurrentAttackZone();
+            if (az != null) az.Deactivate();
+        }
+
+        if (isMining)
+        {
+            isMining = false;
+            animator.SetBool("isMining", false);
+        }
+
+        // Забороняємо нові атаки поки блокуємо
+        canAttack = false;
+
+        // Вмикаємо блок-анімацію
+        if (animator != null)
+            animator.SetBool("isBlocking", true);
+
+        Debug.Log("Player: почав блокувати");
+    }
+
+// Викликається, коли щит перестає блокувати (ПКМ відпущено)
+    public void OnStopBlocking()
+    {
+        // Дозволяємо атаки знову (якщо cooldown дозволяє)
+        canAttack = true;
+
+        if (animator != null)
+            animator.SetBool("isBlocking", false);
+
+        Debug.Log("Player: припинив блокувати");
+    }
+
+    public enum DamageType
+    {
+        Melee,
+        Projectile,
+        Explosion
+    }
+
+// Зворотна сумісність: старі виклики продовжать працювати як Melee
     public void TakeDamage(float amount)
     {
+        TakeDamage(amount, DamageType.Melee);
+    }
+
+// Нова версія з типом урону
+    public void TakeDamage(float amount, DamageType type)
+    {
         if (!canTakeDamage) return;
+
+        // Нехай ShieldController модифікує урон (пасив/активний)
+        if (ShieldController.Instance != null)
+        {
+            amount = ShieldController.Instance.ModifyDamage(amount, type);
+        }
+
         currentHealth -= amount;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         Debug.Log($"Гравець отримав {amount} урону. Поточне HP: {currentHealth}");
@@ -595,6 +710,7 @@ public class PlayerController : MonoBehaviour
             Die();
         }
     }
+
 
     private IEnumerator DamageCooldownCoroutine()
     {
