@@ -3,47 +3,55 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody2D))]
 public class Arrow : MonoBehaviour
 {
-    public float speed = 10f;
+    public float speed = 15f; // Підняв швидкість, бо з гравітацією вона летітиме дугою
     public int damage = 10;
-    public float lifeTime = 3f;
+    public float gravityMultiplier = 1f; // Наскільки сильно гравітація впливає на стрілу
 
     private Rigidbody2D rb;
-
     private bool hasLanded = false;
     private Collider2D mainCollider;
     private Collider2D pickupTrigger;
     
     void Awake()
     {
+        rb = GetComponent<Rigidbody2D>();
         Collider2D[] colliders = GetComponents<Collider2D>();
         if (colliders.Length >= 2)
         {
             mainCollider = colliders[0];
             pickupTrigger = colliders[1];
-        } else if (colliders.Length == 1)
-        {
-            mainCollider = colliders[0];
-            Debug.LogWarning("На префабі стріли є лише один колайдер! Будь ласка, додайте другий для функціоналу підбирання.");
         }
     }
     
     public void Shoot(bool facingRight)
     {
-        rb = GetComponent<Rigidbody2D>();
-        rb.gravityScale = 0f;
+        // 1. Вмикаємо гравітацію, щоб стріла падала
+        rb.gravityScale = gravityMultiplier;
+        
+        // 2. Додаємо початковий імпульс (можна трохи вгору, щоб летіла далі)
         Vector2 direction = facingRight ? Vector2.right : Vector2.left;
-        rb.linearVelocity = direction * speed;
-        RotateToVelocity();
-        if (pickupTrigger != null)
+        // Додамо невеликий нахил вгору (наприклад, 0.1 по Y), щоб був ефект балістики
+        direction += new Vector2(0, 0.1f); 
+        
+        rb.linearVelocity = direction.normalized * speed;
+        
+        if (pickupTrigger != null) pickupTrigger.enabled = false;
+    }
+
+    void Update()
+    {
+        // 3. Постійно розвертаємо стрілу за вектором її швидкості
+        if (!hasLanded)
         {
-            pickupTrigger.enabled = false;
+            RotateToVelocity();
         }
     }
     
     private void RotateToVelocity()
     {
-        if (rb.linearVelocity != Vector2.zero)
+        if (rb.linearVelocity.sqrMagnitude > 0.1f)
         {
+            // Вираховуємо кут на основі поточної швидкості (куди летить, туди й дивиться)
             float angle = Mathf.Atan2(rb.linearVelocity.y, rb.linearVelocity.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
         }
@@ -51,49 +59,33 @@ public class Arrow : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (collision.gameObject.CompareTag("Player"))
-        {
-            return;
-        }
-        
-        if (hasLanded) return;
-        
+        if (collision.gameObject.CompareTag("Player") || hasLanded) return;
+
         EnemyBase enemy = collision.gameObject.GetComponent<EnemyBase>();
         if (enemy != null)
         {
             float finalDamage = damage;
-
-            // 👻 Прибираємо логіку з привидом, оскільки він тепер завжди тригер
-            if (enemy is Rustborn)
+            if (enemy is Rustborn rustborn && rustborn.HasArmor())
             {
-                Rustborn rustborn = (Rustborn)enemy;
-                if (rustborn.HasArmor())
-                {
-                    finalDamage *= 0.5f;
-                }
-                enemy.TakeDamage(finalDamage);
+                finalDamage *= 0.5f;
             }
-            
-            // Стріла застрягає
-            rb.isKinematic = true;
-            rb.linearVelocity = Vector2.zero;
-            rb.gravityScale = 0f;
-            hasLanded = true;
-            transform.parent = collision.transform;
-
-            if (mainCollider != null) mainCollider.enabled = false;
-            if (pickupTrigger != null) pickupTrigger.enabled = true;
-            
-            return;
+            enemy.TakeDamage(finalDamage, DamageType.Projectile);
         }
 
-        // Логіка для зіткнення з іншими об'єктами
-        rb.isKinematic = true;
-        rb.linearVelocity = Vector2.zero;
-        rb.gravityScale = 0f;
+        StopArrow(collision.transform);
+    }
+
+    private void StopArrow(Transform target)
+    {
         hasLanded = true;
         
-        transform.parent = collision.transform;
+        // Вимикаємо фізику повністю
+        rb.isKinematic = true;
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+        rb.gravityScale = 0f;
+    
+        transform.SetParent(target);
 
         if (mainCollider != null) mainCollider.enabled = false;
         if (pickupTrigger != null) pickupTrigger.enabled = true;

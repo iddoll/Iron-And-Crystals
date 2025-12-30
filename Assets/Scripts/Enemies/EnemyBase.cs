@@ -18,10 +18,11 @@ public abstract class EnemyBase : MonoBehaviour
         currentHealth = maxHealth;
     }
 
-    public virtual void TakeDamage(float amount)
+    public virtual void TakeDamage(float amount, DamageType type = DamageType.Melee)
     {
         currentHealth -= amount;
-        Debug.Log($"{enemyName} отримав {amount} урону. Поточне HP: {currentHealth}");
+        Debug.Log($"{enemyName} отримав {amount} урону типу {type}. Поточне HP: {currentHealth}");
+    
         if (currentHealth <= 0)
             Die();
     }

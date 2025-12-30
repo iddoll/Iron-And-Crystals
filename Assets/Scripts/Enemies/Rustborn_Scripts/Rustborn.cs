@@ -144,7 +144,8 @@ public class Rustborn : EnemyBase
         transform.localScale = new Vector3(Mathf.Abs(initialScale.x) * sign, initialScale.y, initialScale.z);
     }
 
-    public override void TakeDamage(float amount)
+    // Додаємо параметр DamageType type
+    public override void TakeDamage(float amount, DamageType type = DamageType.Melee)
     {
         lastHitTime = Time.time;
 
@@ -156,7 +157,8 @@ public class Rustborn : EnemyBase
             {
                 float leftover = -corrosionArmorCurrent;
                 corrosionArmorCurrent = 0;
-                base.TakeDamage(leftover);
+                // Передаємо обидва параметри далі в базу
+                base.TakeDamage(leftover, type); 
             }
             else
             {
@@ -166,7 +168,8 @@ public class Rustborn : EnemyBase
         }
         else
         {
-            base.TakeDamage(amount);
+            // Передаємо обидва параметри далі в базу
+            base.TakeDamage(amount, type);
         }
     }
 

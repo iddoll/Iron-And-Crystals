@@ -75,27 +75,20 @@ public class ShieldController : MonoBehaviour
     }
 
     // Головна функція — дає фінальний урон після врахування щита
-    public float ModifyDamage(float amount, PlayerController.DamageType type)
+    // Просто DamageType (без PlayerController перед ним)
+    public float ModifyDamage(float amount, DamageType type)
     {
-        // Якщо немає щита — нічого не міняємо
         if (!isEquipped) return amount;
+        if (!IsBlocking) return amount * passiveDamageMultiplier;
 
-        // Якщо просто екіпірований, але не блокує → пасивний множник
-        if (!IsBlocking)
-        {
-            return amount * passiveDamageMultiplier; // -20%
-        }
-
-        // Якщо активний блок:
         switch (type)
         {
-            case PlayerController.DamageType.Projectile:
-                // Повністю блокувати проєктайли
+            case DamageType.Projectile:
                 return 0f;
-            case PlayerController.DamageType.Melee:
-            case PlayerController.DamageType.Explosion:
+            case DamageType.Melee:
+            case DamageType.Explosion:
             default:
-                return amount * activeDamageMultiplier; // сильніше зменшуємо
+                return amount * activeDamageMultiplier;
         }
     }
 }

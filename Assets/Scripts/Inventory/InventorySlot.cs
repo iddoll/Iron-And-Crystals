@@ -12,19 +12,18 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     private int count;
     public int slotIndex;
 
-    private bool isSplittingDrag = false;
+    // --- DRAG LOGIC ---
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if (isSplittingDrag)
-        {
-            isSplittingDrag = false;
-            return;
-        }
-
         if (IsEmpty()) return;
+
+        // Починаємо перетягування
         InventoryDragManager.Instance.StartDragging(this, currentItem, count, icon.sprite);
-        // Не очищаємо слот тут, щоб уникнути зникнення предмета при невдалому перетягуванні
+        
+        // ВАЖЛИВО: Очищаємо слот ТІЛЬКИ після того, як менеджер отримав дані.
+        // Це гарантує, що "0" зникне одразу, як ти підняв предмет мишкою.
+        ClearSlot();
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -34,6 +33,7 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
     public void OnEndDrag(PointerEventData eventData)
     {
+        // Якщо предмет не знайшов куди "приземлитися", менеджер сам поверне його або викине
         InventoryDragManager.Instance.OnEndDrag(eventData, this);
     }
 
@@ -41,102 +41,73 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     {
         if (!InventoryDragManager.Instance.HasItem()) return;
 
-        // Отримуємо джерело перетягування
         InventorySlot fromSlot = InventoryDragManager.Instance.GetSourceSlot();
-        EquipmentSlot fromEquipSlot = eventData.pointerDrag?.GetComponent<EquipmentSlot>();
-
-        if (fromSlot == this || fromEquipSlot == this) return;
+        EquipmentSlot fromEquipSlot = InventoryDragManager.Instance.GetSourceEquipSlot();
 
         Item incomingItem = InventoryDragManager.Instance.GetItem();
         int incomingCount = InventoryDragManager.Instance.GetCount();
 
-        if (fromSlot != null && InventorySystem.Instance.GetActiveSlotIndex() == fromSlot.slotIndex)
-        {
-            PlayerController.Instance.UnequipItem();
-            InventorySystem.Instance.SetCurrentTool("None");
-        }
-
-        // Логіка стекування
+        // 1. Спроба стакування з предметом, який вже є в слоті
         if (!IsEmpty() && CanStack(incomingItem))
         {
             int spaceLeft = currentItem.maxStack - count;
-            if (spaceLeft > 0)
-            {
-                int amountToStack = Mathf.Min(spaceLeft, incomingCount);
-                count += amountToStack;
-                RefreshUI();
+            int amountToStack = Mathf.Min(spaceLeft, incomingCount);
+            
+            count += amountToStack;
+            RefreshUI();
 
-                if (fromSlot != null)
-                {
-                    fromSlot.ReduceStack(amountToStack);
-                }
-                else if (fromEquipSlot != null)
-                {
-                    fromEquipSlot.ClearSlot();
-                }
+            // Якщо залишився залишок після стакування - продовжуємо його тягнути
+            if (incomingCount > amountToStack)
+                InventoryDragManager.Instance.StartDragging(fromSlot, incomingItem, incomingCount - amountToStack, incomingItem.icon);
+            else
+                InventoryDragManager.Instance.StopDragging();
 
-                if (incomingCount > amountToStack)
-                    InventoryDragManager.Instance.StartDragging(fromSlot, incomingItem, incomingCount - amountToStack, incomingItem.icon);
-                else
-                    InventoryDragManager.Instance.StopDragging();
-
-                return;
-            }
+            return;
         }
 
-        // Обмін предметами
+        // 2. Обмін предметами (Swap)
         Item tempItem = currentItem;
         int tempCount = count;
 
         AddItem(incomingItem, incomingCount);
 
-        if (fromSlot != null)
+        // Повертаємо старий предмет туди, звідки прийшов новий
+        if (fromSlot != null && fromSlot != this)
         {
             fromSlot.AddItem(tempItem, tempCount);
         }
         else if (fromEquipSlot != null)
         {
-            if (tempItem != null)
-            {
-                // Якщо в InventorySlot був предмет, повертаємо його в EquipmentSlot
+            if (tempItem != null && tempItem.itemType == fromEquipSlot.allowedType)
                 fromEquipSlot.SetItem(tempItem);
-            }
             else
-            {
-                fromEquipSlot.ClearSlot();
-            }
+                InventorySystem.Instance.AddItem(tempItem); // Якщо не підходить в екіпіровку, кидаємо в загальний інвентар
         }
 
-        if (InventorySystem.Instance.GetActiveSlotIndex() == slotIndex)
-        {
-            Item item = GetItem();
-            if (item != null && item.equippedPrefab != null)
-                PlayerController.Instance.EquipItem(item);
-        }
-        
         InventoryDragManager.Instance.StopDragging();
     }
 
-    public void ReduceStack(int amount)
+    // --- CLICK LOGIC ---
+
+    public void OnPointerClick(PointerEventData eventData)
     {
-        count -= amount;
-        if (count <= 0)
+        if (eventData.button == PointerEventData.InputButton.Right && !IsEmpty())
         {
-            ClearSlot();
-        }
-        else
-        {
-            RefreshUI();
+            // Швидке викидання на ПКМ
+            PlayerController.Instance.DropItemFromInventory(currentItem, 1);
+            ReduceStack(1);
         }
     }
 
+    // --- INTERNAL METHODS ---
+
     public void AddItem(Item item, int amount)
     {
+        if (item == null) { ClearSlot(); return; }
+        
         currentItem = item;
         count = amount;
         RefreshUI();
-
-        QuiqSlot.Instance?.OnSlotChanged(this);
 
         if (InventorySystem.Instance.GetActiveSlotIndex() == slotIndex)
             InventorySystem.Instance.UpdateActiveItem();
@@ -148,121 +119,40 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         count = 0;
         RefreshUI();
 
-        QuiqSlot.Instance?.OnSlotChanged(this);
-
         if (InventorySystem.Instance.GetActiveSlotIndex() == slotIndex)
             InventorySystem.Instance.UpdateActiveItem();
-    }
-    public bool IsEmpty() => currentItem == null;
-
-    public void AddItem(Item item)
-    {
-        currentItem = item;
-        count = 1;
-        RefreshUI();
-        if (QuiqSlot.Instance != null)
-        {
-            QuiqSlot.Instance.OnSlotChanged(this);
-        }
-    }
-
-    public void AddOne()
-    {
-        if (currentItem != null && count < currentItem.maxStack)
-        {
-            count++;
-            RefreshUI();
-        }
-    }
-
-    public void RemoveOne()
-    {
-        if (currentItem != null && count > 0)
-        {
-            count--;
-            if (count == 0)
-            {
-                ClearSlot();
-            }
-            else
-            {
-                RefreshUI();
-            }
-        }
-    }
-    
-    public void OnPointerClick(PointerEventData eventData)
-    {
-        if (InventoryDragManager.Instance.HasItem() && eventData.button == PointerEventData.InputButton.Left)
-        {
-            OnDrop(eventData);
-            return;
-        }
-
-        if (!InventoryDragManager.Instance.HasItem())
-        {
-            if (eventData.button == PointerEventData.InputButton.Right)
-            {
-                if (!IsEmpty())
-                {
-                    PlayerController.Instance.DropItemFromInventory(currentItem, 1);
-                    ReduceStack(1);
-                }
-            }
-            else if (eventData.button == PointerEventData.InputButton.Left)
-            {
-                if (!IsEmpty())
-                {
-                    InventoryDragManager.Instance.StartDragging(this, currentItem, count, icon.sprite);
-                    ClearSlot();
-                }
-            }
-        }
     }
 
     private void RefreshUI()
     {
-        if (icon == null) 
-        {
-            Debug.LogError($"[RefreshUI ERROR] icon (Image component) is NULL for slot: {gameObject.name}! Assign it in the Inspector.");
-            return;
-        }
-        if (countText == null) 
-        {
-            Debug.LogError($"[RefreshUI ERROR] countText (Text component) is NULL for slot: {gameObject.name}! Assign it in the Inspector.");
-            return;
-        }
+        if (icon == null || countText == null) return;
 
         if (currentItem != null)
         {
-            if (currentItem.icon == null) 
-            {
-                Debug.LogError($"[RefreshUI ERROR] currentItem.icon is NULL for item: {currentItem.itemName}! Please assign an icon in the ScriptableObject.");
-                icon.sprite = null;
-                icon.enabled = false;
-                countText.text = "";
-                countText.enabled = false;
-                return;
-            }
-
             icon.sprite = currentItem.icon;
             icon.enabled = true;
-        
-            countText.text = currentItem.isStackable && count > 1 ? count.ToString() : "";
-            countText.enabled = currentItem.isStackable && count > 1;
+            
+            // ПУНКТ 4 та 6: цифра тільки для стаків > 1
+            if (currentItem.isStackable && count > 1)
+            {
+                countText.text = count.ToString();
+                countText.enabled = true;
+            }
+            else
+            {
+                countText.enabled = false;
+            }
         }
         else
         {
-            icon.sprite = null;
             icon.enabled = false;
-            countText.text = "";
             countText.enabled = false;
         }
     }
 
-    public bool CanStack(Item item) =>
-        !IsEmpty() && currentItem == item && currentItem.isStackable && count < currentItem.maxStack;
-    
+    public bool IsEmpty() => currentItem == null;
+    public bool CanStack(Item item) => !IsEmpty() && currentItem == item && currentItem.isStackable && count < currentItem.maxStack;
     public Item GetItem() => currentItem;
     public int GetCurrentCount() => count;
+    public void ReduceStack(int amount) { count -= amount; if (count <= 0) ClearSlot(); else RefreshUI(); }
 }

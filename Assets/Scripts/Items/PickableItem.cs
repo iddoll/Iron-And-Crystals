@@ -3,52 +3,33 @@ using UnityEngine;
 public class PickableItem : MonoBehaviour
 {
     public Item itemToPickup;
-    public bool isHeld = false; // Важливо, щоб цей прапорець використовувався коректно
+    public int amount = 1; // Скільки штук підберемо (наприклад, 10 стріл)
+    public float pickupRadius = 2f; // Радіус підбору
 
-    public float pickupRadius = 1f;
-
+    private bool isHeld = false;
     private Transform player;
 
     private void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
 
+        // Перевірки в Start, щоб ти бачив помилки в консолі
         if (itemToPickup == null)
-        {
-            Debug.LogError($"PickableItem на {gameObject.name} не має призначеного ItemToPickup! Будь ласка, призначте його в Inspector.");
-            return;
-        }
-
-        Collider2D[] colliders = GetComponents<Collider2D>();
-        if (colliders.Length == 0)
-        {
-            Debug.LogError($"PickableItem на {gameObject.name} не має жодного Collider2D! Підбір не працюватиме.");
-        }
-        else if (itemToPickup.pickupMethod == PickupMethod.OnTouch)
-        {
-            bool hasTrigger = false;
-            foreach (var col in colliders)
-            {
-                if (col.isTrigger) { hasTrigger = true; break; }
-            }
-            if (!hasTrigger)
-            {
-                Debug.LogWarning($"PickableItem {gameObject.name} з PickupMethod.OnTouch не має жодного тригер-колайдера!");
-            }
-        }
+            Debug.LogError($"[PickableItem] {gameObject.name} не має призначеного Item!");
     }
 
     private void Update()
     {
-        // Debug.Log($"[PickableItem] Update for {gameObject.name}. isHeld: {isHeld}"); // Може бути дуже багато логів
         if (isHeld || player == null || itemToPickup == null) return;
 
+        // 1. Логіка для підбору на клавішу E
         if (itemToPickup.pickupMethod == PickupMethod.OnEPress)
         {
             float distance = Vector2.Distance(transform.position, player.position);
+            
+            // Якщо гравець поруч і натиснув E
             if (distance <= pickupRadius && Input.GetKeyDown(KeyCode.E))
             {
-                Debug.Log($"[PickableItem] Input.GetKeyDown(E) поруч з предметом OnEPress: {gameObject.name}");
                 TryPickup();
             }
         }
@@ -56,14 +37,13 @@ public class PickableItem : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        Debug.Log($"[PickableItem] OnTriggerEnter2D викликано на {gameObject.name} з {collision.gameObject.name}");
         if (isHeld || itemToPickup == null) return;
 
+        // 2. Логіка для підбору просто торканням
         if (itemToPickup.pickupMethod == PickupMethod.OnTouch)
         {
             if (collision.CompareTag("Player"))
             {
-                Debug.Log($"[PickableItem] Гравець торкнувся предмета OnTouch: {gameObject.name}");
                 TryPickup();
             }
         }
@@ -71,28 +51,30 @@ public class PickableItem : MonoBehaviour
 
     private void TryPickup()
     {
-        Debug.Log($"[PickableItem] TryPickup() викликано для: {gameObject.name} | isHeld на початку: {isHeld}");
-        if (isHeld)
-        {
-            Debug.Log($"[PickableItem] Предмет {gameObject.name} вже позначений як Held, відміна підбору.");
-            return;
-        }
+        if (isHeld) return;
         
-        isHeld = true; // Встановлюємо isHeld в true ДО виклику AddItem
-        Debug.Log($"[PickableItem] isHeld встановлено в true для {gameObject.name}.");
+        isHeld = true; 
 
+        // Передаємо предмет в інвентар
+        // Якщо твій AddItem приймає лише Item, то він додасть 1 шт.
+        // Якщо ми хочемо стаки, треба буде трохи змінити AddItem пізніше.
         bool success = InventorySystem.Instance.AddItem(itemToPickup);
-        Debug.Log($"[PickableItem] Результат InventorySystem.Instance.AddItem для {itemToPickup.itemName}: {success}");
 
         if (success)
         {
-            Debug.Log($"[PickableItem] {itemToPickup.itemName} успішно додано в інвентар. Готуюсь знищити об'єкт: {gameObject.name}");
+            Debug.Log($"[PickableItem] Підібрано: {itemToPickup.itemName}");
             Destroy(gameObject);
         }
         else
         {
-            Debug.LogWarning($"[PickableItem] Не вдалося додати {itemToPickup.itemName} в інвентар. Можливо, інвентар повний? Скидаю isHeld на false для {gameObject.name}.");
-            isHeld = false; // Якщо додати не вдалося, дозволяємо спробувати підібрати знову
+            isHeld = false; // Інвентар повний
         }
+    }
+
+    // Візуалізація радіусу в редакторі, щоб ти бачив зону підбору
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, pickupRadius);
     }
 }

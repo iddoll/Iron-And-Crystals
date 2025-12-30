@@ -3,17 +3,14 @@ using UnityEngine;
 public class PlayerEquipment : MonoBehaviour
 {
     public static PlayerEquipment Instance;
+    public SpriteRenderer helmetRenderer;
 
-    [Header("Character Renderers")]
-    public SpriteRenderer helmetRenderer; // Спрайт шолома на голові
+    private void Awake() => Instance = this;
 
-    private void Awake()
+    public void EquipSlotItem(Item item)
     {
-        Instance = this;
-    }
+        if (item == null) return;
 
-    public void EquipItem(Item item)
-    {
         switch (item.itemType)
         {
             case ItemType.Helmet:
@@ -21,49 +18,25 @@ public class PlayerEquipment : MonoBehaviour
                 helmetRenderer.enabled = true;
                 break;
 
-            // 🛡️ ТЕПЕР ЛОГІКА ЩИТА ПОВНІСТЮ ТУТ! 🛡️
             case ItemType.Shield:
-                if (PlayerController.Instance != null)
-                {
-                    // 1. Спочатку знімаємо попередній щит
-                    PlayerController.Instance.UnequipShield(); 
-                
-                    // 2. Встановлюємо новий щит
-                    if (item.equippedPrefab != null && PlayerController.Instance.shieldPoint != null)
-                    {
-                        GameObject heldShieldObject = Instantiate(item.equippedPrefab, PlayerController.Instance.shieldPoint.position, Quaternion.identity, PlayerController.Instance.shieldPoint);
-                        heldShieldObject.transform.localPosition = Vector3.zero;
-                        heldShieldObject.transform.localRotation = Quaternion.identity;
-                    
-                        Rigidbody2D rbHeld = heldShieldObject.GetComponent<Rigidbody2D>();
-                        if (rbHeld != null)
-                        {
-                            rbHeld.simulated = false;
-                            rbHeld.isKinematic = true;
-                        }
-                        // Важливо: ПРИЗНАЧИТИ heldShieldObject до PlayerController.Instance
-                        PlayerController.Instance.heldShieldObject = heldShieldObject; 
-                    }
-                    ShieldController.Instance?.SetEquipped(true);
-                }
+                // Викликаємо PlayerController, щоб він створив фізичний об'єкт щита
+                PlayerController.Instance.SetupShield(item);
+                ShieldController.Instance?.SetEquipped(true);
                 break;
         }
     }
 
-    public void UnequipItem(ItemType type)
+    public void UnequipSlotItem(ItemType type)
     {
-        switch (type)
+        if (type == ItemType.Helmet)
         {
-            case ItemType.Helmet:
-                helmetRenderer.sprite = null;
-                helmetRenderer.enabled = false;
-                break;
+            helmetRenderer.sprite = null;
+            helmetRenderer.enabled = false;
         }
-    
-        // 🛡️ Спеціальна обробка зняття щита 🛡️
-        if (type == ItemType.Shield)
+        else if (type == ItemType.Shield)
         {
-            PlayerController.Instance?.UnequipShield();
+            PlayerController.Instance.UnequipShield();
+            ShieldController.Instance?.SetEquipped(false);
         }
     }
 }

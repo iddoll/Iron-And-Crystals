@@ -21,7 +21,7 @@ public class EquipmentSlot : MonoBehaviour, IDropHandler, IPointerClickHandler, 
         // Очищаємо слот, щоб запобігти дублюванню
         // 🛡️ Коректний виклик UnequipItem, який тепер обробить Shield або Helmet 🛡️
         if (PlayerEquipment.Instance != null)
-            PlayerEquipment.Instance.UnequipItem(currentItem.itemType);
+            PlayerEquipment.Instance.UnequipSlotItem(currentItem.itemType);
             
         currentItem = null;
         if (icon != null)
@@ -105,7 +105,7 @@ public class EquipmentSlot : MonoBehaviour, IDropHandler, IPointerClickHandler, 
             icon.enabled = true;
         }
         if (PlayerEquipment.Instance != null)
-            PlayerEquipment.Instance.EquipItem(newItem);
+            PlayerEquipment.Instance.EquipSlotItem(newItem);
     }
 
     public void OnPointerClick(PointerEventData eventData)
@@ -124,7 +124,7 @@ public class EquipmentSlot : MonoBehaviour, IDropHandler, IPointerClickHandler, 
             if (added)
             {
                 if (PlayerEquipment.Instance != null)
-                    PlayerEquipment.Instance.UnequipItem(currentItem.itemType);
+                    PlayerEquipment.Instance.UnequipSlotItem(currentItem.itemType);
                 
                 currentItem = null;
                 if (icon != null)
@@ -142,7 +142,7 @@ public class EquipmentSlot : MonoBehaviour, IDropHandler, IPointerClickHandler, 
                     
                 // 🛡️ Виклик UnequipItem, навіть якщо предмет викинули 🛡️
                 if (PlayerEquipment.Instance != null)
-                    PlayerEquipment.Instance.UnequipItem(currentItem.itemType);
+                    PlayerEquipment.Instance.UnequipSlotItem(currentItem.itemType);
                     
                 currentItem = null;
                 if (icon != null)

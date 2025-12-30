@@ -76,17 +76,11 @@ public class QuiqSlot : MonoBehaviour
         {
             if (quickSlots[i].IsEmpty())
             {
-                quickSlots[i].AddItem(item);
-                // Коли предмет додається в слот, потрібно також повідомити InventorySystem,
-                // щоб він активував цей слот, якщо потрібно.
-                // InventorySystem.Instance.SetActiveSlot(i); // <-- Цей виклик вже відбувається в AddItem в InventorySystem
-                                                             // Якщо ви хочете, щоб слот одразу ставав активним при додаванні сюди,
-                                                             // переконайтеся, що це не дублює логіку AddItem.
-                                                             // Найкраще, щоб InventorySystem.AddItem сам вирішував, який слот активувати.
+                // ВИПРАВЛЕННЯ: Додаємо кому та одиницю
+                quickSlots[i].AddItem(item, 1); 
                 return true;
             }
         }
-
         return false;
     }
 

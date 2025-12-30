@@ -1,55 +1,39 @@
 using UnityEngine;
+using System.Collections.Generic;
 
-public enum ItemType
-{
-    None,
-    Pickaxe,
-    Sword,
-    Axe,
-    Lance,
-    Bow,
-    Arrow,
-    Crystal,
-    Helmet,
-    Armor,
-    Shield,
-    Boots
-}
-
-// Нове перерахування для методів підбору
-public enum PickupMethod
-{
-    OnTouch, // Підбирається при дотику (для кристалів, ресурсів)
-    OnEPress // Підбирається при натисканні 'E' (для інструментів, зброї)
-}
+public enum ItemType { None, Pickaxe, Sword, Axe, Lance, Bow, Arrow, Crystal, Helmet, Armor, Shield, Boots, Ore }
+public enum PickupMethod { OnTouch, OnEPress }
+public enum DamageType { Melee, Projectile, Explosion }
 
 [CreateAssetMenu(menuName = "Inventory/Item")]
 public class Item : ScriptableObject
 {
-    [Header("Equipped visuals")]
-    public Sprite equippedSprite; // вигляд на персонажі (наприклад, шолом на голові)
-
+    [Header("Base Info")]
     public string itemName;
+    public ItemType itemType;
     public Sprite icon;
+    public PickupMethod pickupMethod = PickupMethod.OnEPress;
+
+    [Header("Visuals")]
+    public Sprite equippedSprite;   // Для броні (шолом)
+    public GameObject worldPrefab;    // На землі
+    public GameObject equippedPrefab; // В руках
+
+    [Header("Combat & Stats")]
+    public float damage = 10f;
+    public float attackCooldown = 1f;
+    public DamageType damageType = DamageType.Melee;
+
+    [Header("Stacking")]
     public bool isStackable;
     public int maxStack = 1;
     
+    [Header("Animations")]
     public AnimatorOverrideController overrideController;
-    
-    [Header("Combat Settings")]
-    public float damage = 10f;
-    public float attackCooldown = 1f;
-    
-    public GameObject worldPrefab; // предмет у світі (із фізикою)
 
-    public GameObject equippedPrefab; // предмет у руці (без фізики)
+    [Header("Crystals (Sockets)")]
+    public int socketCount = 0;
+    public List<Item> socketedCrystals = new List<Item>();
 
-    public ItemType itemType;
-
-    public bool canBeEquipped = false;
-    public Vector3 equippedLocalPosition = Vector3.zero;
-    public Quaternion equippedLocalRotation = Quaternion.identity;
-
-    // НОВЕ ПОЛЕ: Визначає, як предмет підбирається
-    public PickupMethod pickupMethod = PickupMethod.OnEPress; // За замовчуванням 'E'
+    public bool CanAddCrystal() => socketedCrystals.Count < socketCount;
 }

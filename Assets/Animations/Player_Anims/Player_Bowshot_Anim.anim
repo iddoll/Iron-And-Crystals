@@ -28,10 +28,6 @@ AnimationClip:
       value: {fileID: 21300000, guid: b27d982f051c33f4e93f30ab9178bf26, type: 3}
     - time: 0.5
       value: {fileID: 21300000, guid: bbc277eec46c3654da93624ab575e7ca, type: 3}
-    - time: 0.6666667
-      value: {fileID: 21300000, guid: 47073251964ee7041b7e66a450e02c1f, type: 3}
-    - time: 0.8333333
-      value: {fileID: 21300000, guid: 0eb9b70daac5808478c483062fa570d6, type: 3}
     attribute: m_Sprite
     path: 
     classID: 212
@@ -58,19 +54,17 @@ AnimationClip:
     - {fileID: 21300000, guid: de67e90b41b6de0439f4c0cc20a22a48, type: 3}
     - {fileID: 21300000, guid: b27d982f051c33f4e93f30ab9178bf26, type: 3}
     - {fileID: 21300000, guid: bbc277eec46c3654da93624ab575e7ca, type: 3}
-    - {fileID: 21300000, guid: 47073251964ee7041b7e66a450e02c1f, type: 3}
-    - {fileID: 21300000, guid: 0eb9b70daac5808478c483062fa570d6, type: 3}
   m_AnimationClipSettings:
     serializedVersion: 2
     m_AdditiveReferencePoseClip: {fileID: 0}
     m_AdditiveReferencePoseTime: 0
     m_StartTime: 0
-    m_StopTime: 0.84999996
+    m_StopTime: 0.51666665
     m_OrientationOffsetY: 0
     m_Level: 0
     m_CycleOffset: 0
     m_HasAdditiveReferencePose: 0
-    m_LoopTime: 1
+    m_LoopTime: 0
     m_LoopBlend: 0
     m_LoopBlendOrientation: 0
     m_LoopBlendPositionY: 0
@@ -84,18 +78,4 @@ AnimationClip:
   m_EulerEditorCurves: []
   m_HasGenericRootTransform: 0
   m_HasMotionFloatCurves: 0
-  m_Events:
-  - time: 0.6666667
-    functionName: ShootArrow
-    data: 
-    objectReferenceParameter: {fileID: 0}
-    floatParameter: 0
-    intParameter: 0
-    messageOptions: 0
-  - time: 0.8333333
-    functionName: StopShooting
-    data: 
-    objectReferenceParameter: {fileID: 0}
-    floatParameter: 0
-    intParameter: 0
-    messageOptions: 0
+  m_Events: []

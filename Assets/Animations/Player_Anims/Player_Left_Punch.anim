@@ -318,14 +318,14 @@ AnimationClip:
   m_HasMotionFloatCurves: 0
   m_Events:
   - time: 0.26666668
-    functionName: DealUnarmedDamage
+    functionName: AE_AttackStart
     data: 
     objectReferenceParameter: {fileID: 0}
     floatParameter: 0
     intParameter: 0
     messageOptions: 0
   - time: 0.6666667
-    functionName: EndUnarmedAttack
+    functionName: AE_EndAttack
     data: 
     objectReferenceParameter: {fileID: 0}
     floatParameter: 0

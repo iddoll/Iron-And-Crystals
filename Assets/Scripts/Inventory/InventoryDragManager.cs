@@ -93,17 +93,19 @@ public class InventoryDragManager : MonoBehaviour
             {
                 Item itemToDrop = GetItem();
                 int amount = GetCount();
-                
-                // Якщо джерелом був InventorySlot, то видаляємо предмет
-                if (sourceObject is InventorySlot)
+        
+                if (sourceSlot != null) // Якщо тягнули зі звичайного інвентарю
                 {
+                    // 1. Створюємо об'єкт у світі
                     PlayerController.Instance.DropItemFromInventory(itemToDrop, amount);
+            
+                    // 2. ОЧИЩАЄМО слот-джерело (щоб предмет не дублювався)
+                    sourceSlot.ClearSlot(); 
                 }
-                else if (sourceObject is EquipmentSlot)
+                else if (sourceEquipSlot != null) // Якщо тягнули з комірки шолома/щита
                 {
-                    // Якщо джерелом був EquipmentSlot, повертаємо предмет назад,
-                    // а не викидаємо його
-                    (sourceObject as EquipmentSlot).SetItem(itemToDrop);
+                    // Тут ми просто повертаємо його назад у слот, якщо кинули "в нікуди"
+                    sourceEquipSlot.SetItem(itemToDrop);
                 }
             }
         }

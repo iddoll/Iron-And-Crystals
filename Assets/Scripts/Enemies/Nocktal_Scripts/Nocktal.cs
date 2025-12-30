@@ -117,14 +117,13 @@ public class Nocktal : EnemyBase
     // Якщо ви хочете, щоб він все ще міг отримувати урон від чогось іншого,
     // залиште цей метод, але приберіть перевірку isMaterialized.
 
-    public override void TakeDamage(float damage)
+    // Додаємо параметр DamageType type
+    public override void TakeDamage(float damage, DamageType type = DamageType.Melee)
     {
-        // 👻 Цей метод можна залишити, але він не буде викликатися стрілами
-        // через налаштування колайдерів.
-        base.TakeDamage(damage);
+        // Передаємо тип далі в базовий метод
+        base.TakeDamage(damage, type);
         lastHitTime = Time.time;
     }
-    
     // ... (решта ваших методів, як HandleFacing, UpdateAttackZoneSide тощо)
     private void HandleRegeneration()
     {

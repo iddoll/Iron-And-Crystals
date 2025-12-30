@@ -171,6 +171,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Shield_2
       objectReference: {fileID: 0}
+    - target: {fileID: 3663870104333522511, guid: 2f85e5139e3b41446b7c218c41a9765a, type: 3}
+      propertyPath: m_Layer
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 3663870104333522511, guid: 2f85e5139e3b41446b7c218c41a9765a, type: 3}
+      propertyPath: m_TagString
+      value: Armor
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1110,6 +1118,17 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &149336317 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7966665738531749339, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
+  m_PrefabInstance: {fileID: 2248301726497981062}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb8832d041224ee4bb28c57db3c911ad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &155271235
 GameObject:
   m_ObjectHideFlags: 0
@@ -1339,6 +1358,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 179826415}
   m_CullTransparentMesh: 1
+--- !u!114 &207663964 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 9125335558082139142, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
+  m_PrefabInstance: {fileID: 2248301726497981062}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb8832d041224ee4bb28c57db3c911ad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &210249963
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1475,6 +1505,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 216187505}
   m_CullTransparentMesh: 1
+--- !u!114 &217274537 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4010333748702388373, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
+  m_PrefabInstance: {fileID: 2248301726497981062}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb8832d041224ee4bb28c57db3c911ad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &256468490
 GameObject:
   m_ObjectHideFlags: 0
@@ -3157,6 +3198,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Shield_4
       objectReference: {fileID: 0}
+    - target: {fileID: 7017065685337944829, guid: f4e825a68dcc5014cbb765f8ab4c0776, type: 3}
+      propertyPath: m_Layer
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 7017065685337944829, guid: f4e825a68dcc5014cbb765f8ab4c0776, type: 3}
+      propertyPath: m_TagString
+      value: Armor
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -3894,7 +3943,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 404.16083, y: 236.51468}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 60, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &728752832
 MonoBehaviour:
@@ -5239,6 +5288,11 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!4 &945613083 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1363828029610117251, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
+  m_PrefabInstance: {fileID: 2248301726497981062}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &946149005
 GameObject:
   m_ObjectHideFlags: 0
@@ -8148,6 +8202,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Shield_3
       objectReference: {fileID: 0}
+    - target: {fileID: 4653558847350287260, guid: af7f2e341514c4744a93db3eb6f13cfa, type: 3}
+      propertyPath: m_Layer
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 4653558847350287260, guid: af7f2e341514c4744a93db3eb6f13cfa, type: 3}
+      propertyPath: m_TagString
+      value: Armor
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -8765,7 +8827,6 @@ MonoBehaviour:
   - {fileID: 1461959992}
   - {fileID: 1368101002}
   - {fileID: 947921927}
-  allItems: []
 --- !u!4 &1226155137
 Transform:
   m_ObjectHideFlags: 0
@@ -12719,6 +12780,51 @@ MonoBehaviour:
   blockMoveMultiplier: 0.3
   passiveDamageMultiplier: 0.8
   activeDamageMultiplier: 0.3
+--- !u!114 &1516404483
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 58792505}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9068ac192ca1bcb4795dccc0302d0b87, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
+  unarmedDamage: 10
+  swordAttackZone: {fileID: 217274537}
+  axeAttackZone: {fileID: 1793850485}
+  lanceAttackZone: {fileID: 149336317}
+  punchAttackZone: {fileID: 207663964}
+  firePoint: {fileID: 1640032215}
+  arrowPrefab: {fileID: 6332015240612109127, guid: 159d7688f8ea9cb44ad92f734162a9a2, type: 3}
+  bowCooldown: 0.5
+  maxChargeTime: 1.5
+  minArrowSpeed: 10
+  maxArrowSpeed: 30
+--- !u!114 &1516404484
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 58792505}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 580d373358287874787fba78e80fa95a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
+  moveSpeed: 2
+  jumpForce: 5
+  climbSpeed: 1
+  runMultiplier: 1.8
+  crouchMultiplier: 0.5
+  groundCheck: {fileID: 945613083}
+  groundCheckRadius: 0.2
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 128
 --- !u!1 &1543731710
 GameObject:
   m_ObjectHideFlags: 0
@@ -12970,6 +13076,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1578304117}
   m_CullTransparentMesh: 1
+--- !u!4 &1640032215 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5983308749340930374, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
+  m_PrefabInstance: {fileID: 2248301726497981062}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1652152504
 GameObject:
   m_ObjectHideFlags: 0
@@ -13056,6 +13167,14 @@ PrefabInstance:
     - target: {fileID: 4043878618056726792, guid: 8a591381ab2395645b0ada46c1d80892, type: 3}
       propertyPath: m_Name
       value: Shield_1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4043878618056726792, guid: 8a591381ab2395645b0ada46c1d80892, type: 3}
+      propertyPath: m_Layer
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 4043878618056726792, guid: 8a591381ab2395645b0ada46c1d80892, type: 3}
+      propertyPath: m_TagString
+      value: Armor
       objectReference: {fileID: 0}
     - target: {fileID: 7903228901854212579, guid: 8a591381ab2395645b0ada46c1d80892, type: 3}
       propertyPath: m_LocalPosition.x
@@ -13954,6 +14073,17 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &1793850485 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5135683824159535354, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
+  m_PrefabInstance: {fileID: 2248301726497981062}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb8832d041224ee4bb28c57db3c911ad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1802697953
 GameObject:
   m_ObjectHideFlags: 0
@@ -16097,6 +16227,12 @@ PrefabInstance:
       addedObject: {fileID: 1097874367}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 6741900952450730247, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
+      insertIndex: 4
+      addedObject: {fileID: 1516404484}
+    - targetCorrespondingSourceObject: {fileID: 6741900952450730247, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
+      insertIndex: 5
+      addedObject: {fileID: 1516404483}
+    - targetCorrespondingSourceObject: {fileID: 6741900952450730247, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1516404475}
   m_SourcePrefab: {fileID: 100100000, guid: a0a5ce468725cc84ea34f66382058efb, type: 3}
@@ -16111,6 +16247,14 @@ PrefabInstance:
     - target: {fileID: 744667824052261893, guid: 2e37ebb8c112de74c9e2fd92c9b2a5df, type: 3}
       propertyPath: m_Name
       value: Helmet_N
+      objectReference: {fileID: 0}
+    - target: {fileID: 744667824052261893, guid: 2e37ebb8c112de74c9e2fd92c9b2a5df, type: 3}
+      propertyPath: m_Layer
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 744667824052261893, guid: 2e37ebb8c112de74c9e2fd92c9b2a5df, type: 3}
+      propertyPath: m_TagString
+      value: Armor
       objectReference: {fileID: 0}
     - target: {fileID: 7558460726061222767, guid: 2e37ebb8c112de74c9e2fd92c9b2a5df, type: 3}
       propertyPath: m_LocalPosition.x
@@ -16327,6 +16471,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Helmet_T
       objectReference: {fileID: 0}
+    - target: {fileID: 8814137449308046851, guid: a574a7dbcc8517846810438b3d835ff6, type: 3}
+      propertyPath: m_Layer
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 8814137449308046851, guid: a574a7dbcc8517846810438b3d835ff6, type: 3}
+      propertyPath: m_TagString
+      value: Armor
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -16384,6 +16536,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Helmet_E
       objectReference: {fileID: 0}
+    - target: {fileID: 7608905551257253048, guid: 767374b529d8a6c4bb84bab0462d450e, type: 3}
+      propertyPath: m_Layer
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 7608905551257253048, guid: 767374b529d8a6c4bb84bab0462d450e, type: 3}
+      propertyPath: m_TagString
+      value: Armor
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -16400,6 +16560,14 @@ PrefabInstance:
     - target: {fileID: 3010892236796341385, guid: 867432ae08bfbf8448298c8758c2ff1e, type: 3}
       propertyPath: m_Name
       value: Helmet_L
+      objectReference: {fileID: 0}
+    - target: {fileID: 3010892236796341385, guid: 867432ae08bfbf8448298c8758c2ff1e, type: 3}
+      propertyPath: m_Layer
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 3010892236796341385, guid: 867432ae08bfbf8448298c8758c2ff1e, type: 3}
+      propertyPath: m_TagString
+      value: Armor
       objectReference: {fileID: 0}
     - target: {fileID: 6229472818836676505, guid: 867432ae08bfbf8448298c8758c2ff1e, type: 3}
       propertyPath: m_LocalPosition.x

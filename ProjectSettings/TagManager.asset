@@ -11,6 +11,7 @@ TagManager:
   - OreBlock
   - Enemy
   - Ladder
+  - Armor
   layers:
   - Default
   - TransparentFX
@@ -24,7 +25,7 @@ TagManager:
   - Projectile
   - Nocktal
   - SolidNocktal
-  - 
+  - Armor
   - 
   - 
   - 
