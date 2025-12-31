@@ -1,8 +1,10 @@
     using UnityEngine;
     using System.Collections;
+    using System.Collections.Generic;
     using UnityEngine.EventSystems;
     using Cinemachine;
-
+    using UnityEngine.Tilemaps;
+    
     public class PlayerController : MonoBehaviour
     {
         public static PlayerController Instance;
@@ -36,6 +38,16 @@
         private PlayerHealthUI healthUI;
         public CinemachineImpulseSource impulseSource;
 
+        private UnityEngine.Tilemaps.Tilemap groundTilemap;
+        private Dictionary<Vector3Int, int> tileHealthMap = new Dictionary<Vector3Int, int>();
+        public int hitsToDestroyDirt = 3; // Скільки ударів потрібно для руйнування
+        public OreBlock oreDataTemplate;
+        
+        [Header("Mining Visuals")]
+        public Tilemap cracksTilemap; // Перетягни сюди новий CracksTilemap
+        public TileBase[] oreDamageTiles; // Сюди перетягни тайли тріщин (3-4 стадії)
+        private Dictionary<Vector3Int, int> tileMaxHealthMap = new Dictionary<Vector3Int, int>();
+        
         private void Awake()
         {
             if (Instance == null) Instance = this;
@@ -46,6 +58,7 @@
             rb = GetComponent<Rigidbody2D>();
             animator = GetComponent<Animator>();
             impulseSource = GetComponent<CinemachineImpulseSource>();
+            groundTilemap = GameObject.FindGameObjectWithTag("Ground")?.GetComponent<UnityEngine.Tilemaps.Tilemap>();
         }
 
         void Start()
@@ -123,9 +136,147 @@
                 isMining = true;
                 animator.SetBool("isMining", true);
                 targetOre.Mine();
+                return;
+            }
+
+            if (groundTilemap != null)
+            {
+                Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                Vector3Int cellPosition = groundTilemap.WorldToCell(mouseWorldPos);
+
+                if (Vector2.Distance(transform.position, mouseWorldPos) <= miningRadius && groundTilemap.HasTile(cellPosition))
+                {
+                    isMining = true;
+                    animator.SetBool("isMining", true);
+
+                    TileBase clickedTile = groundTilemap.GetTile(cellPosition);
+            
+                    // 1. Визначаємо, чи це руда
+                    bool isOre = (clickedTile == WorldGenerator.Instance.oreTile || IsDamageStageTile(clickedTile));
+
+                    if (!tileHealthMap.ContainsKey(cellPosition))
+                    {
+                        int hp = isOre ? 5 : hitsToDestroyDirt; 
+                        tileHealthMap[cellPosition] = hp;
+                        tileMaxHealthMap[cellPosition] = hp;
+                    }
+
+                    tileHealthMap[cellPosition] -= 1;
+
+                    // 2. ВІЗУАЛІЗАЦІЯ
+                    if (isOre)
+                    {
+                        // Руда замінюється на "биті" тайли
+                        UpdateOreVisualStage(cellPosition);
+                    }
+                    else
+                    {
+                        // ЗЕМЛЯ: Тут ми нічого не робимо. 
+                        // Вона просто залишається суцільним блоком, поки HP не стане 0.
+                    }
+
+                    // 3. ЗНИЩЕННЯ
+                    if (tileHealthMap[cellPosition] <= 0)
+                    {
+                        // Якщо раптом на цьому місці був тайл тріщин (про всяк випадок) — чистимо
+                        if (cracksTilemap != null) cracksTilemap.SetTile(cellPosition, null);
+                
+                        DestroyTile(cellPosition, clickedTile);
+                    }
+
+                    Invoke("EndMining", 0.3f); 
+                }
             }
         }
 
+    private void UpdateOreVisualStage(Vector3Int pos)
+    {
+        if (oreDamageTiles == null || oreDamageTiles.Length == 0) return;
+
+        int currentHP = tileHealthMap[pos];
+        int maxHP = tileMaxHealthMap[pos];
+
+        // Розраховуємо прогрес (від 1.0 до 0.0)
+        float healthPercentage = (float)currentHP / maxHP;
+    
+        // Інвертуємо, щоб отримати індекс: чим менше HP, тим більший індекс
+        // Якщо HP 100% -> index -1 (або 0), якщо HP 20% -> index високий
+        int stageIndex = Mathf.FloorToInt((1f - healthPercentage) * oreDamageTiles.Length);
+    
+        // Обмежуємо, щоб не вийти за межі (остання стадія — перед самим знищенням)
+        stageIndex = Mathf.Clamp(stageIndex, 0, oreDamageTiles.Length - 1);
+
+        // Встановлюємо тайл
+        groundTilemap.SetTile(pos, oreDamageTiles[stageIndex]);
+    
+        // ВАЖЛИВО: Оновлюємо конкретну клітинку, щоб зміни з'явилися візуально
+        groundTilemap.RefreshTile(pos);
+    }
+
+    private void UpdateCracksVisual(Vector3Int cellPos)
+    {
+        if (cracksTilemap == null || oreDamageTiles == null || oreDamageTiles.Length == 0) return;
+
+        float damageProgress = 1f - ((float)tileHealthMap[cellPos] / tileMaxHealthMap[cellPos]);
+        int crackIndex = Mathf.FloorToInt(damageProgress * oreDamageTiles.Length);
+        crackIndex = Mathf.Clamp(crackIndex, 0, oreDamageTiles.Length - 1);
+
+        cracksTilemap.SetTile(cellPos, oreDamageTiles[crackIndex]);
+    }
+
+    private void DestroyTile(Vector3Int pos, TileBase tile)
+    {
+        groundTilemap.SetTile(pos, null);
+        
+        tileHealthMap.Remove(pos);
+        tileMaxHealthMap.Remove(pos);
+
+        Vector3 spawnPos = groundTilemap.GetCellCenterWorld(pos);
+
+        // Якщо зламали руду (будь-яку стадію) - дропаємо кристали
+        if (tile == WorldGenerator.Instance.oreTile || IsDamageStageTile(tile))
+        {
+            DropOreFromTile(spawnPos);
+        }
+        else
+        {
+            Debug.Log("Земля зламана");
+        }
+    }
+
+    private bool IsDamageStageTile(TileBase tile)
+    {
+        if (oreDamageTiles == null) return false;
+        foreach (var t in oreDamageTiles)
+        {
+            if (tile == t) return true;
+        }
+        return false;
+    }
+
+        private void DropOreFromTile(Vector3 position)
+        {
+            if (oreDataTemplate == null) return;
+
+            // Використовуємо логіку з твого старого скрипта
+            int amount = Random.Range(2, 5); // Кількість кристалів
+            for (int i = 0; i < amount; i++)
+            {
+                GameObject selectedOrePrefab = oreDataTemplate.orePrefabs[Random.Range(0, oreDataTemplate.orePrefabs.Length)];
+        
+                Vector2 dropPos = (Vector2)position + new Vector2(Random.Range(-0.2f, 0.2f), Random.Range(-0.2f, 0.2f));
+        
+                // Створюємо кристал
+                GameObject spawnedOre = Instantiate(selectedOrePrefab, dropPos, Quaternion.identity);
+
+                // Додаємо невеликий імпульс, щоб кристали "розліталися" (якщо є Rigidbody2D)
+                if (spawnedOre.TryGetComponent<Rigidbody2D>(out Rigidbody2D rb))
+                {
+                    rb.AddForce(Random.insideUnitCircle * 2f, ForceMode2D.Impulse);
+                }
+            }
+        }
+        
         public void OnActionFinished() // Викликається з Animation Events через Combat
         {
             if (pendingItem != null)
