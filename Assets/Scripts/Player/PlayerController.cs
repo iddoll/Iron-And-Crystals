@@ -26,7 +26,7 @@
         public Transform holdPoint;
         public Transform shieldPoint;
         public Item currentEquippedItem;
-        private GameObject heldObject;
+        public GameObject heldObject;
         public GameObject heldShieldObject;
         private Item pendingItem;
 

@@ -4,10 +4,15 @@ using UnityEngine.EventSystems;
 
 public class EquipmentSlot : MonoBehaviour, IDropHandler, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
+    [Header("Slot Configuration")]
     public ItemType allowedType = ItemType.Helmet;
+    
+    [Header("UI References")]
     public Image icon;
+    [SerializeField] private Text countText; // Перетягни сюди об'єкт тексту кількості
 
     private Item currentItem;
+    private int currentCount; // Додана змінна для зберігання стаку (наприклад, стріл)
 
     // --- Логіка перетягування (Drag and Drop) ---
 
@@ -15,20 +20,14 @@ public class EquipmentSlot : MonoBehaviour, IDropHandler, IPointerClickHandler, 
     {
         if (currentItem == null) return;
         
-        // Передаємо в InventoryDragManager інформацію про предмет
-        InventoryDragManager.Instance.StartDragging(this, currentItem, 1, icon.sprite);
+        // Передаємо реальну кількість (currentCount) замість одиниці
+        InventoryDragManager.Instance.StartDragging(this, currentItem, currentCount, icon.sprite);
         
-        // Очищаємо слот, щоб запобігти дублюванню
-        // 🛡️ Коректний виклик UnequipItem, який тепер обробить Shield або Helmet 🛡️
+        // Повідомляємо систему екіпірування, що предмет знято
         if (PlayerEquipment.Instance != null)
             PlayerEquipment.Instance.UnequipSlotItem(currentItem.itemType);
             
-        currentItem = null;
-        if (icon != null)
-        {
-            icon.sprite = null;
-            icon.enabled = false;
-        }
+        ClearSlotVisuals();
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -38,12 +37,7 @@ public class EquipmentSlot : MonoBehaviour, IDropHandler, IPointerClickHandler, 
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        // Перевіряємо, чи було перетягування успішним (чи OnDrop спрацював)
-        GameObject target = eventData.pointerEnter;
-        bool droppedOnSlot = target != null && (target.GetComponent<InventorySlot>() != null || target.GetComponent<EquipmentSlot>() != null);
-        
-        // Якщо перетягування невдале, повертаємо предмет в його початковий слот.
-        // Це робиться за допомогою InventoryDragManager, який знає, звідки предмет походить.
+        // Менеджер перевірить, чи прийняв хтось предмет. Якщо ні — поверне сюди.
         InventoryDragManager.Instance.OnEndDrag(eventData, this);
     }
 
@@ -54,41 +48,32 @@ public class EquipmentSlot : MonoBehaviour, IDropHandler, IPointerClickHandler, 
         if (!InventoryDragManager.Instance.HasItem()) return;
 
         Item droppedItem = InventoryDragManager.Instance.GetItem();
+        int droppedCount = InventoryDragManager.Instance.GetCount(); // Отримуємо кількість з менеджера
+        
         InventorySlot sourceSlot = InventoryDragManager.Instance.GetSourceSlot();
         EquipmentSlot sourceEquipmentSlot = InventoryDragManager.Instance.GetSourceEquipSlot();
 
-        if (droppedItem == null || droppedItem.itemType != allowedType) 
-        {
-            return;
-        }
-
+        // Перевірка типу
+        if (droppedItem == null || droppedItem.itemType != allowedType) return;
         if (sourceEquipmentSlot == this) return;
         
+        // Зберігаємо поточний предмет для обміну (Swap)
         Item tempItem = currentItem;
+        int tempCount = currentCount;
         
-        SetItem(droppedItem);
+        // Встановлюємо новий предмет
+        SetItem(droppedItem, droppedCount);
         
+        // Повертаємо старий предмет туди, звідки прийшов новий
         if (sourceSlot != null)
         {
-            if (tempItem != null)
-            {
-                sourceSlot.AddItem(tempItem, 1);
-            }
-            else
-            {
-                sourceSlot.ClearSlot();
-            }
+            if (tempItem != null) sourceSlot.AddItem(tempItem, tempCount);
+            else sourceSlot.ClearSlot();
         }
         else if (sourceEquipmentSlot != null)
         {
-            if (tempItem != null)
-            {
-                sourceEquipmentSlot.SetItem(tempItem);
-            }
-            else
-            {
-                sourceEquipmentSlot.ClearSlot();
-            }
+            if (tempItem != null) sourceEquipmentSlot.SetItem(tempItem, tempCount);
+            else sourceEquipmentSlot.ClearSlotVisuals();
         }
         
         InventoryDragManager.Instance.StopDragging();
@@ -96,61 +81,90 @@ public class EquipmentSlot : MonoBehaviour, IDropHandler, IPointerClickHandler, 
 
     // --- Внутрішні методи ---
 
-    public void SetItem(Item newItem)
+    public void SetItem(Item newItem, int amount)
     {
         currentItem = newItem;
+        currentCount = amount;
+
         if (icon != null)
         {
             icon.sprite = newItem.icon;
             icon.enabled = true;
         }
+
+        RefreshUI();
+
         if (PlayerEquipment.Instance != null)
             PlayerEquipment.Instance.EquipSlotItem(newItem);
+    }
+
+    public void RefreshUI()
+    {
+        if (countText == null) return;
+
+        if (currentItem != null)
+        {
+            // Показуємо цифру, якщо це стріли (навіть 1) або якщо стак більше 1
+            bool shouldShowCount = currentItem.itemType == ItemType.Arrow || (currentItem.isStackable && currentCount > 1);
+            
+            countText.text = shouldShowCount ? currentCount.ToString() : "";
+            countText.enabled = shouldShowCount;
+        }
+        else
+        {
+            countText.enabled = false;
+        }
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
         if (eventData.button == PointerEventData.InputButton.Right)
         {
-            ClearSlot();
+            UnequipToInventory();
         }
     }
 
-    public void ClearSlot()
+    public void UnequipToInventory()
     {
-        if (currentItem != null)
+        if (currentItem == null) return;
+
+        // Намагаємось додати в інвентар весь стак
+        bool added = InventorySystem.Instance.AddItem(currentItem); 
+        // Примітка: якщо твій AddItem не підтримує кількість, предмет може додатися лише в кількості 1.
+        // Переконайся, що в InventorySystem.AddItem реалізована робота з сумою предметів.
+
+        if (added)
         {
-            bool added = InventorySystem.Instance.AddItem(currentItem);
-            if (added)
-            {
-                if (PlayerEquipment.Instance != null)
-                    PlayerEquipment.Instance.UnequipSlotItem(currentItem.itemType);
+            if (PlayerEquipment.Instance != null)
+                PlayerEquipment.Instance.UnequipSlotItem(currentItem.itemType);
+            
+            ClearSlotVisuals();
+        }
+        else
+        {
+            // Викидаємо у світ, якщо інвентар повний
+            PlayerController.Instance.DropItemFromInventory(currentItem, currentCount);
+            
+            if (PlayerEquipment.Instance != null)
+                PlayerEquipment.Instance.UnequipSlotItem(currentItem.itemType);
                 
-                currentItem = null;
-                if (icon != null)
-                {
-                    icon.sprite = null;
-                    icon.enabled = false;
-                }
-            }
-            else
-            {
-                if (currentItem.worldPrefab != null)
-                    Instantiate(currentItem.worldPrefab, PlayerController.Instance.transform.position + Vector3.up * 0.5f, Quaternion.identity);
-                else
-                    Debug.LogWarning($"Could not add {currentItem.itemName} to inventory and there is no worldPrefab.");
-                    
-                // 🛡️ Виклик UnequipItem, навіть якщо предмет викинули 🛡️
-                if (PlayerEquipment.Instance != null)
-                    PlayerEquipment.Instance.UnequipSlotItem(currentItem.itemType);
-                    
-                currentItem = null;
-                if (icon != null)
-                {
-                    icon.sprite = null;
-                    icon.enabled = false;
-                }
-            }
+            ClearSlotVisuals();
         }
     }
+
+    public void ClearSlotVisuals()
+    {
+        currentItem = null;
+        currentCount = 0;
+        if (icon != null)
+        {
+            icon.sprite = null;
+            icon.enabled = false;
+        }
+        if (countText != null) countText.enabled = false;
+    }
+
+    // Допоміжні методи для менеджера
+    public Item GetItem() => currentItem;
+    public int GetCount() => currentCount;
 }

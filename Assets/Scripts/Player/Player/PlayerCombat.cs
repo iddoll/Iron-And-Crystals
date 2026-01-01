@@ -99,19 +99,51 @@ public class PlayerCombat : MonoBehaviour
         }
     }
 
+    // Додай цей метод в Update або викликай його, коли змінюється інвентар
+    public void UpdateBowAmmoDisplay()
+    {
+        if (player.currentEquippedItem == null || player.currentEquippedItem.itemType != ItemType.Bow) return;
+
+        int totalAmmo;
+        // Отримуємо предмет стріли та загальну кількість через InventorySystem
+        Item arrowToUse = InventorySystem.Instance.GetAmmoToUse(out totalAmmo);
+
+        // Шукаємо текст на префабі лука, який зараз у руках (heldObject)
+        if (player.heldObject != null)
+        {
+            var ammoText = player.heldObject.GetComponentInChildren<TMPro.TextMeshProUGUI>();
+            if (ammoText != null)
+            {
+                ammoText.text = totalAmmo.ToString();
+                // Опціонально: можна змінювати колір тексту, якщо стріл 0
+                ammoText.color = totalAmmo > 0 ? Color.white : Color.red;
+            }
+        }
+    }
+
     private void FireArrow(float chargeProgress)
     {
         if (arrowPrefab != null && firePoint != null)
         {
-            if (InventorySystem.Instance.RemoveItemByType(ItemType.Arrow, 1))
+            int dummyCount;
+            // 1. Питаємо інвентар, яку стрілу використовувати (пріоритет слота)
+            Item arrowItem = InventorySystem.Instance.GetAmmoToUse(out dummyCount);
+
+            if (arrowItem != null)
             {
+                // 2. Видаляємо саме ту стрілу, яку знайшли (спочатку зі слота, потім з інвентарю)
+                InventorySystem.Instance.ConsumeArrow();
+
                 float finalSpeed = Mathf.Lerp(minArrowSpeed, maxArrowSpeed, chargeProgress);
                 GameObject arrowObj = Instantiate(arrowPrefab, firePoint.position, Quaternion.identity);
                 Arrow arrow = arrowObj.GetComponent<Arrow>();
             
+                // Якщо у стріли є свої статси (наприклад, бонус до дамагу), передаємо їх тут
                 arrow.speed = finalSpeed; 
-                // Визначаємо напрямок за scale гравця
                 arrow.Shoot(player.transform.localScale.x > 0);
+            
+                // Оновлюємо цифри на лукові після пострілу
+                UpdateBowAmmoDisplay();
             }
         }
     }

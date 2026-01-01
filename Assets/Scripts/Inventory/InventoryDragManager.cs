@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
@@ -59,9 +60,26 @@ public class InventoryDragManager : MonoBehaviour
         {
             draggedIcon.sprite = iconSprite;
             draggedIcon.gameObject.SetActive(true);
+        
+            // ВАЖЛИВО: Переконайся, що іконка не прозора
+            Color c = draggedIcon.color;
+            c.a = 1f; 
+            draggedIcon.color = c;
+
+            // Виносимо іконку на передній план UI
+            draggedIcon.transform.SetAsLastSibling();
         }
-        draggedIconText.text = draggedCount > 1 ? draggedCount.ToString() : "";
-        draggedIconText.gameObject.SetActive(draggedCount > 1);
+    
+        // Показуємо кількість, якщо > 1 або якщо це стріли
+        bool shouldShowText = draggedCount > 1 || (draggedItem != null && draggedItem.itemType == ItemType.Arrow);
+    
+        if (draggedIconText != null)
+        {
+            draggedIconText.text = draggedCount.ToString();
+            draggedIconText.gameObject.SetActive(shouldShowText);
+            draggedIconText.transform.SetAsLastSibling();
+        }
+    
         UpdateDraggedPosition(Input.mousePosition);
     }
 
@@ -75,43 +93,58 @@ public class InventoryDragManager : MonoBehaviour
     {
         List<RaycastResult> results = new List<RaycastResult>();
         EventSystem.current.RaycastAll(eventData, results);
-        
+    
         bool droppedOnValidTarget = false;
         foreach (var result in results)
         {
-            if (result.gameObject.GetComponent<InventorySlot>() != null || result.gameObject.GetComponent<EquipmentSlot>() != null)
+            // Перевіряємо, чи є під мишкою будь-який об'єкт, що може прийняти предмет
+            if (result.gameObject.GetComponent<InventorySlot>() != null || 
+                result.gameObject.GetComponent<EquipmentSlot>() != null)
             {
                 droppedOnValidTarget = true;
                 break;
             }
         }
-        
-        // Якщо предмет був кинутий поза UI
+    
         if (!droppedOnValidTarget)
         {
+            // ЛОГІКА ВИКИДАННЯ У СВІТ
             if (HasItem())
             {
-                Item itemToDrop = GetItem();
-                int amount = GetCount();
-        
-                if (sourceSlot != null) // Якщо тягнули зі звичайного інвентарю
-                {
-                    // 1. Створюємо об'єкт у світі
-                    PlayerController.Instance.DropItemFromInventory(itemToDrop, amount);
-            
-                    // 2. ОЧИЩАЄМО слот-джерело (щоб предмет не дублювався)
-                    sourceSlot.ClearSlot(); 
-                }
-                else if (sourceEquipSlot != null) // Якщо тягнули з комірки шолома/щита
-                {
-                    // Тут ми просто повертаємо його назад у слот, якщо кинули "в нікуди"
-                    sourceEquipSlot.SetItem(itemToDrop);
-                }
+                PlayerController.Instance.DropItemFromInventory(GetItem(), GetCount());
+                // sourceSlot вже був очищений у OnBeginDrag, тому нічого не робимо
             }
         }
+        else
+        {
+            // ЛОГІКА ПЕРЕВІРКИ: ЧИ ПРИЙНЯЛИ ПРЕДМЕТ?
+            // Якщо OnDrop спрацював успішно, він викликає StopDragging() всередині себе.
+            // Якщо ж OnDrop відхилив предмет через тип, StopDragging() ще не був викликаний.
         
-        // Завжди зупиняємо перетягування після обробки
-        StopDragging();
+            StartCoroutine(ReturnItemIfNotDropped());
+        }
+    }
+
+// Корутина, яка чекає один кадр, щоб OnDrop встиг спрацювати
+    private IEnumerator ReturnItemIfNotDropped()
+    {
+        yield return new WaitForEndOfFrame();
+
+        if (HasItem()) // Якщо після завершення кадру предмет все ще в менеджері
+        {
+            if (sourceSlot != null)
+            {
+                // Повертаємо в початковий слот (тут все добре)
+                sourceSlot.AddItem(draggedItem, draggedCount);
+            }
+            else if (sourceEquipSlot != null)
+            {
+                // ВИПРАВЛЕНО: Додаємо другий аргумент (кількість), як того вимагає новий EquipmentSlot
+                sourceEquipSlot.SetItem(draggedItem, draggedCount);
+            }
+    
+            StopDragging();
+        }
     }
 
     public void StopDragging()
