@@ -8,6 +8,9 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     [SerializeField] private Image icon;
     [SerializeField] private Text countText;
 
+    [Header("Slot Settings")]
+    public ItemType allowedType = ItemType.None; // None = будь-який предмет
+    
     private Item currentItem;
     private int count;
     public int slotIndex;
@@ -41,13 +44,21 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     {
         if (!InventoryDragManager.Instance.HasItem()) return;
 
-        InventorySlot fromSlot = InventoryDragManager.Instance.GetSourceSlot();
-        EquipmentSlot fromEquipSlot = InventoryDragManager.Instance.GetSourceEquipSlot();
-
         Item incomingItem = InventoryDragManager.Instance.GetItem();
         int incomingCount = InventoryDragManager.Instance.GetCount();
 
-        // 1. Спроба стакування з предметом, який вже є в слоті
+        // --- ПЕРЕВІРКА ТИПУ (Виправлення зникнення) ---
+        if (allowedType != ItemType.None && incomingItem.itemType != allowedType)
+        {
+            // Якщо тип не підходить, ми просто нічого не робимо. 
+            // InventoryDragManager.OnEndDrag сам поверне предмет у початковий слот.
+            return;
+        }
+
+        InventorySlot fromSlot = InventoryDragManager.Instance.GetSourceSlot();
+        // Примітка: якщо у тебе є окремий клас EquipmentSlot, переконайся, що він теж працює через цей менеджер
+
+        // 1. Спроба стакування
         if (!IsEmpty() && CanStack(incomingItem))
         {
             int spaceLeft = currentItem.maxStack - count;
@@ -56,7 +67,6 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             count += amountToStack;
             RefreshUI();
 
-            // Якщо залишився залишок після стакування - продовжуємо його тягнути
             if (incomingCount > amountToStack)
                 InventoryDragManager.Instance.StartDragging(fromSlot, incomingItem, incomingCount - amountToStack, incomingItem.icon);
             else
@@ -65,23 +75,26 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             return;
         }
 
-        // 2. Обмін предметами (Swap)
+        // 2. Обмін (Swap)
         Item tempItem = currentItem;
         int tempCount = count;
 
+        // ВАЖЛИВО: перевіряємо, чи можна повернути старий предмет у початковий слот
+        // (наприклад, якщо ми міняємо шолом на шолом у слоті екіпіровки)
+        if (fromSlot != null && tempItem != null)
+        {
+            if (fromSlot.allowedType != ItemType.None && tempItem.itemType != fromSlot.allowedType)
+            {
+                // Якщо старий предмет не влізе в той слот, звідки прийшов новий - скасовуємо обмін
+                return; 
+            }
+        }
+
         AddItem(incomingItem, incomingCount);
 
-        // Повертаємо старий предмет туди, звідки прийшов новий
         if (fromSlot != null && fromSlot != this)
         {
             fromSlot.AddItem(tempItem, tempCount);
-        }
-        else if (fromEquipSlot != null)
-        {
-            if (tempItem != null && tempItem.itemType == fromEquipSlot.allowedType)
-                fromEquipSlot.SetItem(tempItem);
-            else
-                InventorySystem.Instance.AddItem(tempItem); // Якщо не підходить в екіпіровку, кидаємо в загальний інвентар
         }
 
         InventoryDragManager.Instance.StopDragging();
@@ -132,8 +145,10 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             icon.sprite = currentItem.icon;
             icon.enabled = true;
             
-            // ПУНКТ 4 та 6: цифра тільки для стаків > 1
-            if (currentItem.isStackable && count > 1)
+            // --- ВИПРАВЛЕННЯ БАГУ СТРІЛ (Показуємо кількість завжди для Arrows) ---
+            bool shouldShowCount = (currentItem.isStackable && count > 1) || currentItem.itemType == ItemType.Arrow;
+            
+            if (shouldShowCount)
             {
                 countText.text = count.ToString();
                 countText.enabled = true;
@@ -149,6 +164,9 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             countText.enabled = false;
         }
     }
+
+    // Додамо метод GetCurrentCount для менеджера
+    public int GetCount() => count;
 
     public bool IsEmpty() => currentItem == null;
     public bool CanStack(Item item) => !IsEmpty() && currentItem == item && currentItem.isStackable && count < currentItem.maxStack;
